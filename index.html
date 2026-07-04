@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>合約風控雷達</title>
+<style>
+  :root{
+    --bg:#0b0e11; --card:#151a21; --card2:#1c2330; --line:#252d3a;
+    --text:#e8ecf1; --dim:#8a94a6; --green:#2ebd85; --red:#f6465d;
+    --amber:#f0b90b; --blue:#4f9cff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;font-size:15px;padding-bottom:70px}
+  header{padding:16px 16px 8px}
+  header h1{font-size:19px;font-weight:700}
+  header .sub{color:var(--dim);font-size:12px;margin-top:4px;line-height:1.5}
+  .tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:1px solid var(--line);z-index:9;padding-bottom:env(safe-area-inset-bottom)}
+  .tabs button{flex:1;padding:13px 0;background:none;border:none;color:var(--dim);font-size:14px;font-weight:600}
+  .tabs button.on{color:var(--amber)}
+  .page{display:none;padding:8px 12px 20px}
+  .page.on{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+  .card h2{font-size:15px;margin-bottom:2px}
+  .card .hint{color:var(--dim);font-size:12px;line-height:1.55;margin-bottom:8px}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .btn{background:var(--amber);color:#111;border:none;border-radius:8px;padding:9px 14px;font-size:14px;font-weight:700}
+  .btn.ghost{background:var(--card2);color:var(--text);border:1px solid var(--line)}
+  select,input{background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 10px;font-size:15px}
+  input{width:100%}
+  label{display:block;color:var(--dim);font-size:12px;margin:10px 0 4px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{color:var(--dim);font-weight:500;text-align:right;padding:6px 4px;border-bottom:1px solid var(--line);font-size:12px}
+  td{text-align:right;padding:8px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  .g{color:var(--green)} .r{color:var(--red)} .dim{color:var(--dim)} .amber{color:var(--amber)}
+  .badge{display:inline-block;background:rgba(240,185,11,.15);color:var(--amber);border-radius:5px;font-size:10.5px;padding:2px 5px;margin-left:5px}
+  .status{color:var(--dim);font-size:12px;margin:6px 2px}
+  .out{background:var(--card2);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:14px;line-height:1.9}
+  .out b{font-variant-numeric:tabular-nums}
+  .warn{background:rgba(246,70,93,.12);border:1px solid rgba(246,70,93,.4);color:#ff8fa0;border-radius:10px;padding:9px 12px;margin-top:10px;font-size:13px;line-height:1.6}
+  .ok{background:rgba(46,189,133,.1);border:1px solid rgba(46,189,133,.35);color:#7fe0bb;border-radius:10px;padding:9px 12px;margin-top:10px;font-size:13px;line-height:1.6}
+  .rule{border-left:3px solid var(--amber);padding:8px 10px;margin:10px 0;background:var(--card2);border-radius:0 10px 10px 0;font-size:13.5px;line-height:1.7}
+  .rule.red{border-left-color:var(--red)}
+  .rule.green{border-left-color:var(--green)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .seg{display:flex;background:var(--card2);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+  .seg button{flex:1;padding:9px 0;background:none;border:none;color:var(--dim);font-size:14px;font-weight:700}
+  .seg button.on.short{background:rgba(246,70,93,.2);color:var(--red)}
+  .seg button.on.long{background:rgba(46,189,133,.18);color:var(--green)}
+  .foot{color:var(--dim);font-size:11.5px;line-height:1.7;padding:4px 14px 16px}
+  tr.click{cursor:pointer}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:20;display:none;overflow-y:auto;padding:18px 12px 40px}
+  .modal.on{display:block}
+  .mcard{background:var(--card);border:1px solid var(--line);border-radius:14px;max-width:560px;margin:0 auto;padding:14px}
+  .mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .dirtag{font-size:16px;font-weight:800;padding:4px 12px;border-radius:8px}
+  .dirtag.long{background:rgba(46,189,133,.15);color:var(--green)}
+  .dirtag.short{background:rgba(246,70,93,.15);color:var(--red)}
+  .closex{background:var(--card2);border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:6px 12px;font-size:13px}
+  .lvl{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:8px 2px;font-size:14px}
+  .lvl b{font-variant-numeric:tabular-nums;text-align:right}
+  .why{background:var(--card2);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.85;margin:10px 0}
+  .sect{color:var(--amber);font-size:13px;font-weight:700;margin:14px 0 4px}
+  .iv{padding:6px 12px !important;font-size:12.5px !important}
+  .iv.on{color:var(--amber) !important;border-color:var(--amber) !important}
+  canvas{display:block;width:100%;height:230px;background:var(--card2);border-radius:10px}
+  .indi{color:var(--dim);font-size:12.5px;line-height:1.8;margin-top:6px}
+  #liqFeed div{border-bottom:1px solid var(--line);padding:4px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>合約風控雷達 <span class="badge">v1.4</span></h1>
+  <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
+</header>
+
+<!-- ================= 雷達 ================= -->
+<div class="page on" id="pg-radar">
+  <div class="card">
+    <div class="row">
+      <button class="btn" id="btnScan">重新掃描</button>
+      <select id="volMin">
+        <option value="3000000">量能 ≥ 3M</option>
+        <option value="10000000">量能 ≥ 10M</option>
+        <option value="30000000">量能 ≥ 30M</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:5px;margin:0;font-size:13px;color:var(--dim)">
+        <input type="checkbox" id="strict" checked style="width:auto"> 嚴格模式
+      </label>
+    </div>
+    <div class="status" id="radarStatus">載入中…</div>
+    <div class="status">按標的沒反應？→ 到「計算器」輸入幣種按「計畫卡」。若連底部分頁都切不動＝你在唯讀預覽裡，請把檔案用 Safari／Chrome 開啟。</div>
+  </div>
+
+  <div class="card">
+    <h2 class="g">做多雷達｜資金費深負＋價格轉強</h2>
+    <div class="hint">空軍擁擠、付錢掙扎、價格反著走＝軋空燃料。點任一列 → 完整交易計畫卡。</div>
+    <table><thead><tr><th>幣種</th><th>資金費/期</th><th>24h</th><th>量(M)</th></tr></thead><tbody id="longBody"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2 class="r">做空雷達｜資金費高正＋價格走弱</h2>
+    <div class="hint">多頭付你錢等它跌。「主場」＝正費率＋明顯下跌。點任一列 → 計畫卡。</div>
+    <table><thead><tr><th>幣種</th><th>資金費/期</th><th>24h</th><th>量(M)</th></tr></thead><tbody id="shortBody"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2 class="amber">市場強平流｜即時，≥ $20K</h2>
+    <div class="hint">哪裡在爆倉＝哪裡的燃料正被點燃。<span class="r">多單強平</span>向下砸價、<span class="g">空單強平</span>向上推價；連續同向強平＝行情正在自我強化。</div>
+    <div id="liqFeed" style="font-size:12.5px;line-height:1.9"><span class="dim">連線中…</span></div>
+  </div>
+</div>
+
+<!-- ================= 計算器 ================= -->
+<div class="page" id="pg-calc">
+  <div class="card">
+    <h2>單筆風控計算器</h2>
+    <div class="hint">入場點是你的判斷；停損、停利、倉位是數學。這裡算的每個數字都來自你的規則，不是預測。</div>
+
+    <label>幣種（選填，帶入 Binance 現價與資金費）</label>
+    <div class="row">
+      <input id="sym" placeholder="例：VANRY" style="flex:1;text-transform:uppercase">
+      <button class="btn ghost" id="btnLookup">帶入現價</button>
+      <button class="btn" id="btnPlanInput">計畫卡</button>
+    </div>
+    <div class="status" id="symInfo"></div>
+
+    <label>方向</label>
+    <div class="seg">
+      <button id="btnShort" class="on short">做空</button>
+      <button id="btnLong" class="long">做多</button>
+    </div>
+
+    <div class="grid2">
+      <div><label>帳戶權益 (USDT)</label><input id="equity" type="number" inputmode="decimal" value="10000"></div>
+      <div><label>單筆可虧 (%權益)</label><input id="riskPct" type="number" inputmode="decimal" value="2"></div>
+      <div><label>進場價</label><input id="entry" type="number" inputmode="decimal" placeholder="0.0000"></div>
+      <div><label>停損價（掛在系統上）</label><input id="stop" type="number" inputmode="decimal" placeholder="0.0000"></div>
+      <div><label>槓桿</label><input id="lev" type="number" inputmode="decimal" value="25"></div>
+      <div style="display:flex;align-items:flex-end"><button class="btn" style="width:100%" id="btnCalc">計算</button></div>
+    </div>
+    <div id="calcOut"></div>
+  </div>
+</div>
+
+<!-- ================= 規則 ================= -->
+<div class="page" id="pg-rules">
+  <div class="card">
+    <h2>鐵律（違反任何一條＝當天停止交易）</h2>
+    <div class="rule">1｜單筆名目 ≤ 權益 5%；同方向名目總額 ≤ 權益 30%。所有迷因幣空單視為同一注。</div>
+    <div class="rule">2｜每張單的停損掛在系統上。「心裡知道要跑」在凌晨的插針裡不算數。</div>
+    <div class="rule red">3｜絕不為被軋的空單補保證金。補保證金救倉位是這個打法唯一的死法。</div>
+    <div class="rule">4｜自家空單的資金費轉深負＝全市場擠空、軋空預警 → 減倉，不是加倉。</div>
+    <div class="rule">5｜出金棘輪：權益每比上次出金點 +50%，提出增幅的 1/3。30 萬的定義是「總資產」，不是交易所餘額。</div>
+  </div>
+  <div class="card">
+    <h2>斷路器</h2>
+    <div class="rule red">權益從高水位回撤 -10% → 所有規模減半兩週。</div>
+    <div class="rule red">回撤 -20% → 全部平倉、停一週、寫檢討再重啟。</div>
+  </div>
+  <div class="card">
+    <h2>多單專屬規則（試用期）</h2>
+    <div class="rule green">只做「資金費深負＋價格已轉強」的軋空候選——做多還能收資金費。</div>
+    <div class="rule green">規模＝空單的一半（單筆名目 ≤ 權益 2.5%），同時最多 2 檔。</div>
+    <div class="rule red">多單絕不「抱到綠」：空單跌到 0 是你的獲利上限，多單跌到 0 是保證金歸零。停損沒掛就不准開。</div>
+    <div class="rule green">時間停損：資金費回到正常而價格沒動＝論點失效，直接出場。滿 20 筆正期望值才升規模。</div>
+  </div>
+  <div class="card">
+    <h2>誠實聲明</h2>
+    <div class="hint" style="margin:0">雷達與計畫卡給的是「不對稱在哪一邊」的候選與規則化計畫，不是預測。「大戶持倉」＝幣安保證金前 20% 大戶的官方持倉數據，是最接近巨鯨動向的免費真數據；鏈上錢包追蹤屬另一套付費資料。強平梯子是幾何估算，不是真實掛單熱圖。本工具刻意不含任何型態學——只用可量化、可驗證的東西。宣稱能給你「精準未來」的，都是在賣東西。</div>
+  </div>
+</div>
+
+<div class="modal" id="planModal">
+  <div class="mcard">
+    <div class="mhead"><span class="dirtag" id="planDir">—</span><button class="closex" id="btnClose">關閉</button></div>
+    <div id="planBody" style="font-size:14px">—</div>
+  </div>
+</div>
+
+<div class="foot">v1.4｜資金費雷達＋交易計畫卡（K線/RSI/MACD/大戶持倉/強平梯子）＋即時強平流＋風控計算器｜自動重試與降級容錯｜數據源 fapi.binance.com（公開端點）｜Pionex 上市清單與費率略有不同，下單前核對</div>
+
+<div class="tabs">
+  <button class="on">雷達</button>
+  <button>計算器</button>
+  <button>規則</button>
+</div>
+
+<script>
+const FAPI = 'https://fapi.binance.com';
+let radarRows = [];
+let dir = 'short';
+let plan = null;   // {sym, side, entry, stop, tp15, tp2}
+
+function showTab(i, btn){
+  document.querySelectorAll('.page').forEach((p,idx)=>p.classList.toggle('on', idx===i));
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function fmt(n, d){ return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function px(n){
+  n = Number(n);
+  if (!isFinite(n)) return '—';
+  if (n >= 100) return fmt(n,2);
+  if (n >= 1) return fmt(n,4);
+  return n.toPrecision(4);
+}
+
+/* ---------------- 雷達 ---------------- */
+async function loadRadar(){
+  const st = document.getElementById('radarStatus');
+  st.textContent = '掃描中…';
+  try{
+    const [prem, t24] = await Promise.all([
+      fetch(FAPI+'/fapi/v1/premiumIndex').then(r=>r.json()),
+      fetch(FAPI+'/fapi/v1/ticker/24hr').then(r=>r.json())
+    ]);
+    const volMin = Number(document.getElementById('volMin').value);
+    const tmap = {};
+    t24.forEach(t=>{ tmap[t.symbol] = t; });
+    radarRows = [];
+    prem.forEach(p=>{
+      if (!p.symbol.endsWith('USDT') || p.symbol.includes('_')) return;
+      const t = tmap[p.symbol]; if (!t) return;
+      const qv = Number(t.quoteVolume); if (!(qv >= volMin)) return;
+      radarRows.push({
+        sym: p.symbol.replace(/USDT$/,''),
+        fr: Number(p.lastFundingRate)*100,
+        chg: Number(t.priceChangePercent),
+        volM: qv/1e6
+      });
+    });
+    renderRadar();
+    st.textContent = '最後更新：' + new Date().toLocaleString('zh-TW') + '｜通過門檻 ' + radarRows.length + ' 檔';
+  }catch(e){
+    st.textContent = '連線失敗（網路或瀏覽器限制）。手機請用 Safari／Chrome 開啟。';
+  }
+}
+function rowHtml(x, badge, side){
+  const frCls = x.fr < 0 ? 'g' : (x.fr > 0 ? 'r' : 'dim');
+  const chgCls = x.chg >= 0 ? 'g' : 'r';
+  return '<tr class="click" data-sym="'+x.sym+'" data-side="'+side+'"><td>'+x.sym+(badge?'<span class="badge">主場</span>':'')+'</td>'+
+    '<td class="'+frCls+'">'+fmt(x.fr,4)+'%</td>'+
+    '<td class="'+chgCls+'">'+fmt(x.chg,2)+'%</td>'+
+    '<td class="dim">'+fmt(x.volM,1)+'</td></tr>';
+}
+function renderRadar(){
+  const strict = document.getElementById('strict').checked;
+  let longs = radarRows.filter(x=>x.fr < -0.03);
+  if (strict) longs = longs.filter(x=>x.chg > 0);
+  longs.sort((a,b)=>a.fr-b.fr);
+  document.getElementById('longBody').innerHTML =
+    longs.slice(0,12).map(x=>rowHtml(x,false,'long')).join('') || '<tr><td colspan="4" class="dim">目前沒有符合條件的候選——「今天不做多」也是一個部位。</td></tr>';
+  let shorts = radarRows.filter(x=>x.fr > 0.01);
+  shorts.sort((a,b)=>b.fr-a.fr);
+  document.getElementById('shortBody').innerHTML =
+    shorts.slice(0,12).map(x=>rowHtml(x, x.chg < -5,'short')).join('') || '<tr><td colspan="4" class="dim">目前沒有高正費率標的。</td></tr>';
+}
+
+/* ---------------- 強平流 (websocket) ---------------- */
+let liqWs = null, liqRows = [], liqRetried = false;
+function startLiqFeed(){
+  const box = document.getElementById('liqFeed');
+  try{
+    liqWs = new WebSocket('wss://fstream.binance.com/ws/!forceOrder@arr');
+    liqWs.onopen = function(){ box.innerHTML = '<span class="dim">已連線，等待大額強平…</span>'; };
+    liqWs.onmessage = function(ev){
+      try{
+        const d = JSON.parse(ev.data);
+        const o = d.o || d;
+        if (!o || !o.s || !o.s.endsWith('USDT')) return;
+        const val = Number(o.q) * Number(o.ap || o.p);
+        if (!(val >= 20000)) return;
+        const t = new Date(o.T || Date.now());
+        const hh = ('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);
+        const sideTxt = o.S === 'SELL' ? '<span class="r">多單強平</span>' : '<span class="g">空單強平</span>';
+        liqRows.unshift('<div>'+hh+'　<b>'+o.s.replace(/USDT$/,'')+'</b>　'+sideTxt+'　$'+fmt(val/1000,0)+'K　@'+px(o.p)+'</div>');
+        liqRows = liqRows.slice(0,14);
+        box.innerHTML = liqRows.join('');
+      }catch(e){}
+    };
+    liqWs.onclose = function(){
+      if (!liqRetried){ liqRetried = true; setTimeout(startLiqFeed, 5000); }
+      else box.innerHTML = (liqRows.join('')||'') + '<div class="dim">強平流已斷線（手機瀏覽器休眠會中斷，重新整理即可）。</div>';
+    };
+  }catch(e){ box.innerHTML = '<span class="dim">此瀏覽器不支援即時連線。</span>'; }
+}
+
+/* ---------------- 指標 ---------------- */
+function emaSeries(arr, n){
+  const out = new Array(arr.length).fill(null);
+  if (arr.length < n) return out;
+  let s = 0;
+  for (let i=0;i<n;i++) s += arr[i];
+  out[n-1] = s/n;
+  const k = 2/(n+1);
+  for (let i=n;i<arr.length;i++) out[i] = arr[i]*k + out[i-1]*(1-k);
+  return out;
+}
+function rsiWilder(closes, n){
+  if (closes.length < n+1) return null;
+  let g=0,l=0;
+  for (let i=1;i<=n;i++){ const d=closes[i]-closes[i-1]; if(d>=0)g+=d; else l-=d; }
+  let ag=g/n, al=l/n;
+  for (let i=n+1;i<closes.length;i++){
+    const d=closes[i]-closes[i-1];
+    ag=(ag*(n-1)+Math.max(d,0))/n;
+    al=(al*(n-1)+Math.max(-d,0))/n;
+  }
+  if (al===0) return 100;
+  return 100-100/(1+ag/al);
+}
+function macdCalc(closes){
+  const e12=emaSeries(closes,12), e26=emaSeries(closes,26);
+  const dif=[];
+  for(let i=0;i<closes.length;i++) dif.push((e12[i]!==null&&e26[i]!==null)?e12[i]-e26[i]:null);
+  const difClean = dif.map(v=>v===null?0:v);
+  const start = dif.findIndex(v=>v!==null);
+  const seg = difClean.slice(start);
+  const dea9 = emaSeries(seg,9);
+  const dea = new Array(closes.length).fill(null);
+  for(let i=0;i<dea9.length;i++) if(dea9[i]!==null) dea[start+i]=dea9[i];
+  const hist=[];
+  for(let i=0;i<closes.length;i++) hist.push((dif[i]!==null&&dea[i]!==null)?dif[i]-dea[i]:null);
+  return {dif:dif, dea:dea, hist:hist};
+}
+function crossInfo(hist){
+  const h = hist.filter(v=>v!==null);
+  if (h.length<3) return {txt:'—', golden:null, ago:null};
+  const cur = h[h.length-1];
+  let ago = null, golden = null;
+  for (let i=h.length-1;i>0;i--){
+    if ((h[i]>=0) !== (h[i-1]>=0)){ ago = h.length-1-i; golden = h[i]>=0; break; }
+  }
+  if (ago===null) return {txt: cur>=0?'長期金叉後':'長期死叉後', golden:cur>=0, ago:999};
+  return {txt:(golden?'金叉':'死叉')+'後第 '+(ago+1)+' 根', golden:golden, ago:ago};
+}
+
+/* ---------------- K線圖 ---------------- */
+function drawChart(canvasId, bars, lv){
+  const cv = document.getElementById(canvasId);
+  if (!cv) return;
+  const cw = cv.clientWidth || 320, ch = cv.clientHeight || 230;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = cw*dpr; cv.height = ch*dpr;
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,cw,ch);
+  const data = bars.slice(-90);
+  let mn = Infinity, mx = -Infinity;
+  data.forEach(b=>{ mn=Math.min(mn,Number(b[3])); mx=Math.max(mx,Number(b[2])); });
+  [lv.entry,lv.stop,lv.tp15,lv.tp2].forEach(v=>{ if(v>0){ mn=Math.min(mn,v); mx=Math.max(mx,v);} });
+  const pad=(mx-mn)*0.05||mx*0.01; mn-=pad; mx+=pad;
+  const y=v=>ch-(v-mn)/(mx-mn)*ch;
+  ctx.strokeStyle='#252d3a'; ctx.fillStyle='#8a94a6'; ctx.font='9px sans-serif'; ctx.textAlign='left';
+  for(let i=1;i<=3;i++){
+    const gy=ch*i/4; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(cw,gy); ctx.stroke();
+    ctx.fillText(px(mn+(mx-mn)*(1-i/4)), 3, gy-3);
+  }
+  const step=cw/(data.length+2), bw=Math.max(1.5,step*0.62);
+  data.forEach((b,i)=>{
+    const o=Number(b[1]),h=Number(b[2]),l=Number(b[3]),c=Number(b[4]);
+    const xC=step*(i+1.5);
+    const up=c>=o;
+    ctx.strokeStyle=up?'#2ebd85':'#f6465d';
+    ctx.fillStyle=up?'#2ebd85':'#f6465d';
+    ctx.beginPath(); ctx.moveTo(xC,y(h)); ctx.lineTo(xC,y(l)); ctx.stroke();
+    const top=y(Math.max(o,c)), hgt=Math.max(1,Math.abs(y(o)-y(c)));
+    ctx.fillRect(xC-bw/2, top, bw, hgt);
+  });
+  function line(v, color, label){
+    if (!(v>0)) return;
+    ctx.strokeStyle=color; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(0,y(v)); ctx.lineTo(cw,y(v)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=color; ctx.font='10px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(label+' '+px(v), cw-3, y(v)-3);
+    ctx.textAlign='left';
+  }
+  line(lv.entry,'#f0b90b','進場');
+  line(lv.stop,'#f6465d','停損');
+  line(lv.tp15,'#2ebd85','TP1');
+  line(lv.tp2,'#2ebd85','TP2');
+}
+async function chartLoad(interval, btn){
+  if (!plan) return;
+  document.querySelectorAll('.iv').forEach(b=>b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const indi = document.getElementById('indiBox');
+  try{
+    const k = await fetch(FAPI+'/fapi/v1/klines?symbol='+plan.sym+'USDT&interval='+interval+'&limit=200').then(r=>{if(!r.ok)throw 0;return r.json();});
+    drawChart('pcv', k, plan);
+    const closes = k.map(b=>Number(b[4]));
+    const rsi = rsiWilder(closes,14);
+    const m = macdCalc(closes);
+    const h = m.hist.filter(v=>v!==null);
+    const cur=h[h.length-1], prev=h[h.length-2];
+    const ci = crossInfo(m.hist);
+    let rsiTxt = rsi===null?'—':fmt(rsi,1);
+    let rsiCls = rsi===null?'dim':(rsi>=70?'r':(rsi<=30?'g':'dim'));
+    let rsiZone = rsi===null?'':(rsi>=70?'（超買）':(rsi<=30?'（超賣）':'（中性）'));
+    let histTxt = (cur>=0?'+':'')+cur.toPrecision(3)+(Math.abs(cur)>=Math.abs(prev)?'（放大）':'（收斂）');
+    indi.innerHTML = interval+'｜RSI(14)：<b class="'+rsiCls+'">'+rsiTxt+'</b>'+rsiZone
+      +'｜MACD 柱：<b class="'+(cur>=0?'g':'r')+'">'+histTxt+'</b>｜'+ci.txt;
+  }catch(e){ indi.innerHTML = '<span class="dim">K線載入失敗</span>'; }
+}
+
+/* ---------------- 計畫卡 ---------------- */
+function closePlan(){ document.getElementById('planModal').classList.remove('on'); plan=null; }
+
+async function openPlan(sym, side){
+  const modal = document.getElementById('planModal');
+  const dirEl = document.getElementById('planDir');
+  const body = document.getElementById('planBody');
+  modal.classList.add('on');
+  dirEl.textContent = (side==='long'?'做多 ':'做空 ') + sym;
+  dirEl.className = 'dirtag ' + side;
+  body.innerHTML = '<span class="dim">計畫生成中…（行情＋K線＋大戶數據）</span>';
+  try{
+    const S = sym + 'USDT';
+    async function fx(u, label){
+      let last = '網路錯誤（'+label+'）';
+      for (let a=0; a<2; a++){
+        try{
+          const r = await fetch(u);
+          if (r.ok) return await r.json();
+          if (r.status === 400) throw {code:'notlisted'};
+          last = 'HTTP '+r.status+'（'+label+'）';
+        }catch(e){
+          if (e && e.code === 'notlisted') throw e;
+        }
+        await new Promise(rs=>setTimeout(rs,600));
+      }
+      throw {code:'fail', msg:last};
+    }
+    const safe = async function(u){ try{ const r = await fetch(u); if (r.ok) return await r.json(); }catch(e){} try{ const r2 = await fetch(u); if (r2.ok) return await r2.json(); }catch(e){} return null; };
+    const p = await fx(FAPI+'/fapi/v1/premiumIndex?symbol='+S, '行情');
+    const t = await safe(FAPI+'/fapi/v1/ticker/24hr?symbol='+S);
+    const k = await safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1h&limit=200');
+    const entry = Number(p.markPrice), fr = Number(p.lastFundingRate)*100;
+    const chg = t ? Number(t.priceChangePercent) : null, volM = t ? Number(t.quoteVolume)/1e6 : null;
+
+    /* --- 停損/停利/倉位 --- */
+    const hasK = !!(k && k.length > 10);
+    const w = hasK ? k.slice(-48) : [];
+    const structHi = hasK ? Math.max.apply(null, w.map(b=>Number(b[2]))) * 1.01 : Infinity;
+    const structLo = hasK ? Math.min.apply(null, w.map(b=>Number(b[3]))) * 0.99 : 0;
+    let stop, stopSrc;
+    if (side==='long'){
+      stop = Math.max(structLo, entry*0.88);
+      stopSrc = (structLo > entry*0.88) ? '2日結構低點下方' : '固定 -12%';
+      if (stop >= entry){ stop = entry*0.88; stopSrc = '固定 -12%'; }
+    } else {
+      stop = Math.min(structHi, entry*1.25);
+      stopSrc = (structHi < entry*1.25) ? '2日結構高點上方' : '固定 +25%';
+      if (stop <= entry){ stop = entry*1.25; stopSrc = '固定 +25%'; }
+    }
+    const risk1 = Math.abs(entry - stop);
+    const dist = risk1/entry;
+    const tp15 = side==='long' ? entry+1.5*risk1 : entry-1.5*risk1;
+    const tp2  = side==='long' ? entry+2*risk1  : entry-2*risk1;
+    plan = {sym:sym, side:side, entry:entry, stop:stop, tp15:tp15, tp2:tp2};
+
+    const eq = Number(localStorage.getItem('radar_eq')) || 10000;
+    const riskPct = (Number(localStorage.getItem('radar_risk')) || 2)/100;
+    const riskUsd = eq*riskPct;
+    const cap = eq*(side==='long'?0.025:0.05);
+    const useN = Math.min(riskUsd/dist, cap);
+    const qty = useN/entry;
+    const mmr = 0.005;
+    const maxLev = side==='short' ? 1/((stop/entry)-1+mmr) : 1/((1-stop/entry)+mmr);
+    const lev = Math.max(2, Math.min(25, Math.floor(maxLev*0.7)));
+    const margin = useN/lev;
+    const liq = side==='short' ? entry*(1+1/lev-mmr) : entry*(1-1/lev+mmr);
+    const liqBad = side==='short' ? (liq<=stop) : (liq>=stop);
+
+    /* --- 動能 (1h) --- */
+    const closes = hasK ? k.map(b=>Number(b[4])) : [];
+    const rsi = hasK ? rsiWilder(closes,14) : null;
+    const m = hasK ? macdCalc(closes) : {hist:[]};
+    const hArr = m.hist.filter(v=>v!==null);
+    const hCur = hArr[hArr.length-1], hPrev = hArr[hArr.length-2];
+
+    /* --- 理由 --- */
+    let whys = [];
+    if (side==='short'){
+      whys.push('多方在付你錢：資金費 <b class="r">+'+fmt(fr,4)+'%/期</b>，持有期間收費');
+      if (chg!==null) whys.push('24h '+(chg<0?'<b class="r">':'<b>')+fmt(chg,2)+'%</b>' + (chg<-5?'——下跌＋正費率＝你的主場型態':''));
+      if (rsi!==null){
+        if (rsi<25) whys.push('<span class="amber">⚠ 1h RSI '+fmt(rsi,1)+'：超賣——勿追空，等反彈回 40–50 再進</span>');
+        else if (rsi<45) whys.push('動能確認：1h RSI '+fmt(rsi,1)+'（空方掌控）');
+        else whys.push('<span class="amber">1h RSI '+fmt(rsi,1)+' 偏強——等動能轉弱再進</span>');
+      }
+      if (hCur!==undefined){
+        if (hCur<0 && Math.abs(hCur)>=Math.abs(hPrev)) whys.push('MACD 柱在零軸下放大（跌勢順風）');
+        else if (hCur<0) whys.push('MACD 柱負但收斂——下跌動能減弱，留意反彈');
+        else whys.push('<span class="amber">MACD 已翻多——此空單逆動能，需要更強的理由</span>');
+      }
+      if (volM!==null) whys.push('流動性：24h 量 '+fmt(volM,1)+'M');
+      whys.push('<span class="amber">失效條件：</span>資金費轉負（擁擠換邊）或價格站上停損位 → 出場，不補保證金');
+    } else {
+      if (chg!==null && chg <= 0) whys.push('<span class="amber">⚠ 價格尚未轉強——違反嚴格模式，等回穩不破再進</span>');
+      whys.push('空方擁擠且在付錢：資金費 <b class="g">'+fmt(fr,4)+'%/期</b>，做多反而收費');
+      if (chg!==null) whys.push('價格動能：24h '+(chg>=0?'<b class="g">+':'<b class="r">')+fmt(chg,2)+'%</b>（軋空'+(chg>10?'進行中——勿追高，等回踩':'醞釀')+'）');
+      if (rsi!==null){
+        if (rsi>75) whys.push('<span class="amber">⚠ 1h RSI '+fmt(rsi,1)+'：超買——勿追多，等回踩</span>');
+        else if (rsi>50) whys.push('動能確認：1h RSI '+fmt(rsi,1)+'（多方掌控）');
+        else whys.push('1h RSI '+fmt(rsi,1)+' 中性偏弱——擠空初期常見，倉位保守');
+      }
+      if (hCur!==undefined){
+        if (hCur>0 && Math.abs(hCur)>=Math.abs(hPrev)) whys.push('MACD 柱在零軸上放大（升勢順風）');
+        else if (hCur>0) whys.push('MACD 柱正但收斂——動能減弱');
+        else if (Math.abs(hCur)<Math.abs(hPrev)) whys.push('MACD 負但收斂——反轉醞釀中');
+        else whys.push('<span class="amber">MACD 仍走空——逆動能，等金叉再進更穩</span>');
+      }
+      if (volM!==null) whys.push('流動性：24h 量 '+fmt(volM,1)+'M');
+      whys.push('<span class="amber">失效條件：</span>跌破停損＝論點死亡；或 3 天內未觸停利且資金費回到 &gt;-0.05% → 時間停損出場');
+    }
+
+    /* --- 大戶（延後載入，減少瞬間請求數） --- */
+    function buildWhale(topPos, glob, taker, oi){
+      let whaleHtml = '<div class="dim" style="font-size:12.5px">此幣無大戶持倉數據（上市過新），或目前環境擋了 futures/data 端點。</div>';
+      if (topPos && topPos.length){
+        const tNow = Number(topPos[topPos.length-1].longShortRatio);
+        const tPrev = Number(topPos[0].longShortRatio);
+        const dT = tNow - tPrev;
+        const gNow = (glob && glob.length) ? Number(glob[glob.length-1].longShortRatio) : null;
+        const tkNow = (taker && taker.length) ? Number(taker[taker.length-1].buySellRatio) : null;
+        let oiTxt = '—';
+        if (oi && oi.length>1){
+          const oiChg = (Number(oi[oi.length-1].sumOpenInterestValue)/Number(oi[0].sumOpenInterestValue)-1)*100;
+          oiTxt = (oiChg>=0?'+':'')+fmt(oiChg,1)+'%（24h）';
+        }
+        let read;
+        if (tNow>=1.1 && gNow!==null && gNow<1) read='大戶偏多、散戶偏空——市場常朝散戶痛的方向走';
+        else if (tNow<=0.9 && gNow!==null && gNow>=1.1) read='大戶偏空、散戶偏多——'+(side==='short'?'你的空單與大戶同邊':'你的多單在跟大戶對作，倉位減半');
+        else if (dT>0.1 && chg!==null && chg<0) read='大戶在下跌中加多（逢低吸籌跡象）';
+        else if (dT<-0.1 && chg!==null && chg>0) read='大戶在上漲中減多（逢高派發跡象）';
+        else read='大戶動向中性——以資金費與動能為主';
+        let clash = '';
+        if (side==='short' && tNow>1.3) clash='<div class="warn" style="margin-top:8px">⚠ 大戶持倉重多（'+fmt(tNow,2)+'）——這張空單在跟大戶對作，規模減半或觀望。</div>';
+        if (side==='long' && tNow<0.7) clash='<div class="warn" style="margin-top:8px">⚠ 大戶持倉重空（'+fmt(tNow,2)+'）——這張多單在跟大戶對作，規模減半或觀望。</div>';
+        whaleHtml =
+          '<div class="lvl"><span class="dim">大戶持倉多空比（前20%大戶）</span><b class="'+(tNow>=1?'g':'r')+'">'+fmt(tNow,2)+'（24h '+(dT>=0?'+':'')+fmt(dT,2)+'）</b></div>'
+          +(gNow!==null?'<div class="lvl"><span class="dim">散戶帳戶多空比</span><b>'+fmt(gNow,2)+'</b></div>':'')
+          +(tkNow!==null?'<div class="lvl"><span class="dim">主動買賣比（taker）</span><b>'+fmt(tkNow,2)+'</b></div>':'')
+          +'<div class="lvl"><span class="dim">持倉量 OI 變化</span><b>'+oiTxt+'</b></div>'
+          +'<div class="hint" style="margin-top:6px">解讀：'+read+'。（大戶＝幣安官方前 20% 保證金大戶持倉——最接近「巨鯨」的免費真數據）</div>'
+          +clash;
+      }
+      return whaleHtml;
+    }
+
+    /* --- 強平梯子 --- */
+    let ladder = '<table><thead><tr><th>槓桿</th><th>多單強平（下方磁鐵）</th><th>空單強平（上方磁鐵）</th></tr></thead><tbody>';
+    [100,50,25,10].forEach(L=>{
+      ladder += '<tr><td>'+L+'x</td><td class="r">'+px(entry*(1-1/L+mmr))+'</td><td class="g">'+px(entry*(1+1/L-mmr))+'</td></tr>';
+    });
+    ladder += '</tbody></table><div class="hint" style="margin-top:6px">以現價開倉的幾何估算——插針常先掃向強平密集帶再走真方向。這不是 Coinglass 的實際掛單熱圖（那需要付費數據＋推估模型），但「磁鐵位」的邏輯相同。</div>';
+
+    const entLo = side==='long' ? entry*0.995 : entry;
+    const entHi = side==='long' ? entry : entry*1.005;
+
+    const chartSec = hasK
+      ? '<div class="row" style="margin:2px 0 6px">'
+        +'<button class="btn ghost iv" data-iv="15m">15m</button>'
+        +'<button class="btn ghost iv on" data-iv="1h">1h</button>'
+        +'<button class="btn ghost iv" data-iv="4h">4h</button>'
+      +'</div>'
+      +'<canvas id="pcv"></canvas>'
+      +'<div class="indi" id="indiBox">計算中…</div>'
+      : '<div class="hint">此環境載入不到 K 線（僅影響圖表、結構停損與 RSI/MACD，其餘照常）。</div>';
+    body.innerHTML = chartSec
+      +'<div class="sect">為什麼做這一單</div>'
+      +'<div class="why">'+whys.map(x=>'• '+x).join('<br>')+'</div>'
+      +'<div class="sect">價位與倉位</div>'
+      + '<div class="lvl"><span class="dim">進場區（掛限價）</span><b>'+px(entLo)+' ~ '+px(entHi)+'</b></div>'
+      + '<div class="lvl"><span class="dim">停損（'+stopSrc+'，掛在系統上）</span><b class="r">'+px(stop)+'（'+fmt(dist*100,1)+'%距離）</b></div>'
+      + '<div class="lvl"><span class="dim">停利 1（RR 1.5，平一半）</span><b class="g">'+(tp15>0?px(tp15):'—')+'</b></div>'
+      + '<div class="lvl"><span class="dim">停利 2（RR 2，剩餘移動停損）</span><b class="g">'+(tp2>0?px(tp2):'—')+'</b></div>'
+      + '<div class="lvl"><span class="dim">名目上限（權益 '+fmt(eq,0)+'、可虧 '+fmt(riskPct*100,1)+'%）</span><b>'+fmt(useN,1)+' USDT</b></div>'
+      + '<div class="lvl"><span class="dim">數量 / 保證金（建議 '+lev+'x 逐倉）</span><b>'+px(qty)+' / '+fmt(margin,1)+' USDT</b></div>'
+      + '<div class="lvl"><span class="dim">預估強平價（逐倉近似）</span><b>'+px(liq)+'</b></div>'
+      + (liqBad
+          ? '<div class="warn">⚠ '+lev+'x 之下強平會比停損先到——槓桿降到 <b>'+fmt(Math.max(1,Math.floor(maxLev*10)/10),1)+'x 以下</b>再開。</div>'
+          : '<div class="ok">強平價在停損之外，結構安全。停損單要真的掛上去。</div>')
+      +'<div class="sect">大戶動向（巨鯨代理數據）</div>'
+      + '<div id="whaleBox"><span class="dim" style="font-size:12.5px">大戶數據載入中…</span></div>'
+      +'<div class="sect">強平梯子（燃料在哪裡）</div>'
+      + ladder
+      + '<div class="hint" style="margin-top:10px">此卡由規則自動生成：它回答「為什麼、怎麼做」，不保證「這一單會贏」。十筆虧四五筆是常態——系統的利潤來自停損小虧＋停利大賺的長期重複。停損不是建議，是這張卡成立的前提。下單前到 Pionex 核對。</div>';
+
+    if (hasK){
+      chartLoad('1h', null);
+      const ivBtns = document.querySelectorAll('.iv');
+      ivBtns.forEach(b=>{ if(b.textContent==='1h') b.classList.add('on'); });
+    }
+    (async function(){
+      const topPos = await safe(FAPI+'/futures/data/topLongShortPositionRatio?symbol='+S+'&period=1h&limit=25');
+      const glob   = await safe(FAPI+'/futures/data/globalLongShortAccountRatio?symbol='+S+'&period=1h&limit=25');
+      const taker  = await safe(FAPI+'/futures/data/takerlongshortRatio?symbol='+S+'&period=1h&limit=25');
+      const oi     = await safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=1h&limit=25');
+      const wb = document.getElementById('whaleBox');
+      if (wb) wb.innerHTML = buildWhale(topPos, glob, taker, oi);
+    })();
+  }catch(e){
+    if (e && e.code === 'notlisted'){
+      body.innerHTML = '<div class="warn">'+sym+'：Binance 未上市此永續（可能是 Pionex 獨有幣）。請到「計算器」頁手動輸入進場價與停損價。</div>';
+    } else {
+      const d = (e && e.msg) ? e.msg : '未知錯誤';
+      body.innerHTML = '<div class="warn">'+sym+'：資料抓取失敗——'+d+'。<br>已自動重試仍失敗，多半是目前環境（預覽面板／公司網路）限流或擋了 Binance 網域。請按「關閉」再點一次，或把檔案用一般瀏覽器（Chrome／Safari）開啟。</div>';
+    }
+  }
+}
+
+/* ---------------- 計算器 ---------------- */
+function setDir(d){
+  dir = d;
+  document.getElementById('btnShort').classList.toggle('on', d==='short');
+  document.getElementById('btnLong').classList.toggle('on', d==='long');
+}
+async function lookup(){
+  const s = document.getElementById('sym').value.trim().toUpperCase();
+  const info = document.getElementById('symInfo');
+  if (!s){ info.textContent=''; return; }
+  info.textContent = '查詢中…';
+  try{
+    const [p, t] = await Promise.all([
+      fetch(FAPI+'/fapi/v1/premiumIndex?symbol='+s+'USDT').then(r=>{ if(!r.ok) throw 0; return r.json(); }),
+      fetch(FAPI+'/fapi/v1/ticker/24hr?symbol='+s+'USDT').then(r=>{ if(!r.ok) throw 0; return r.json(); })
+    ]);
+    const mark = Number(p.markPrice), fr = Number(p.lastFundingRate)*100, chg = Number(t.priceChangePercent);
+    document.getElementById('entry').value = px(mark);
+    let msg = s+'｜現價 '+px(mark)+'｜資金費 '+fmt(fr,4)+'%/期｜24h '+fmt(chg,2)+'%';
+    if (dir==='short' && fr < -0.05) msg += '｜⚠ 空方擁擠（負費率）——鐵律4';
+    if (dir==='long' && fr > 0.03)  msg += '｜⚠ 做多要付資金費';
+    info.textContent = msg;
+  }catch(e){
+    info.textContent = s+'：Binance 未上市此永續（Pionex 獨有幣請手動輸入價格）。';
+  }
+}
+function calc(){
+  const eq = Number(document.getElementById('equity').value);
+  const riskPct = Number(document.getElementById('riskPct').value)/100;
+  const entry = Number(document.getElementById('entry').value);
+  const stop = Number(document.getElementById('stop').value);
+  const lev = Number(document.getElementById('lev').value);
+  const out = document.getElementById('calcOut');
+  try{ localStorage.setItem('radar_eq', eq); localStorage.setItem('radar_risk', riskPct*100); }catch(e){}
+
+  if (!(eq>0) || !(riskPct>0) || !(entry>0) || !(stop>0) || !(lev>0)){
+    out.innerHTML = '<div class="warn">請填齊：權益、可虧%、進場價、停損價、槓桿。</div>'; return;
+  }
+  if (dir==='short' && stop<=entry){ out.innerHTML='<div class="warn">做空的停損必須在進場價「上方」。</div>'; return; }
+  if (dir==='long' && stop>=entry){ out.innerHTML='<div class="warn">做多的停損必須在進場價「下方」。</div>'; return; }
+
+  const distPct = Math.abs(dir==='short' ? (stop-entry)/entry : (entry-stop)/entry);
+  const riskUsd = eq*riskPct;
+  const maxNotional = riskUsd/distPct;
+  const capNotional = eq*(dir==='short'?0.05:0.025);
+  const useNotional = Math.min(maxNotional, capNotional);
+  const capped = useNotional < maxNotional - 1e-9;
+  const qty = useNotional/entry;
+  const margin = useNotional/lev;
+  const mmr = 0.005;
+  const liq = dir==='short' ? entry*(1+1/lev-mmr) : entry*(1-1/lev+mmr);
+  const liqBeforeStop = dir==='short' ? (liq <= stop) : (liq >= stop);
+  let maxLev;
+  if (dir==='short') maxLev = 1/((stop/entry)-1+mmr); else maxLev = 1/((1-stop/entry)+mmr);
+  const risk1 = Math.abs(dir==='short' ? stop-entry : entry-stop);
+  const tp15 = dir==='short' ? entry-1.5*risk1 : entry+1.5*risk1;
+  const tp2  = dir==='short' ? entry-2*risk1  : entry+2*risk1;
+
+  let html = '<div class="out">'
+    + '停損距離：<b>'+fmt(distPct*100,2)+'%</b>（觸發時虧 <b class="r">'+fmt(Math.min(riskUsd, useNotional*distPct),2)+' USDT</b>）<br>'
+    + '名目部位上限：<b>'+fmt(useNotional,1)+' USDT</b>' + (capped ? '（被鐵律1的'+(dir==='short'?'5%':'2.5%')+'上限截掉，風險數學允許 '+fmt(maxNotional,1)+'）' : '（由風險回推）') + '<br>'
+    + '數量：<b>'+px(qty)+'</b>｜保證金@'+lev+'x：<b>'+fmt(margin,1)+' USDT</b><br>'
+    + '預估強平價（逐倉近似）：<b>'+px(liq)+'</b><br>'
+    + '停利參考：RR 1.5 → <b class="g">'+(tp15>0?px(tp15):'—')+'</b>（平一半）｜RR 2 → <b class="g">'+(tp2>0?px(tp2):'—')+'</b>（剩餘移動停損）'
+    + '</div>';
+
+  if (liqBeforeStop){
+    html += '<div class="warn">⚠ 強平價比你的停損「先」到——這張單會在停損觸發前被清算。把槓桿降到 <b>'+fmt(Math.max(1,Math.floor(maxLev*10)/10),1)+'x 以下</b>，或收緊停損。</div>';
+  } else {
+    html += '<div class="ok">強平價在停損之外，結構安全。記得：停損單要真的掛上去。</div>';
+  }
+  out.innerHTML = html;
+}
+
+function radarClick(e){
+  const tr = e.target.closest('tr');
+  if (!tr || !tr.dataset.sym) return;
+  openPlan(tr.dataset.sym, tr.dataset.side);
+}
+function planFromInput(){
+  const s = document.getElementById('sym').value.trim().toUpperCase();
+  const info = document.getElementById('symInfo');
+  if (!s){ info.textContent = '先輸入幣種，例：VANRY'; return; }
+  openPlan(s, dir);
+}
+
+(function init(){
+  try{
+    const eq = localStorage.getItem('radar_eq'); if (eq) document.getElementById('equity').value = eq;
+    const rk = localStorage.getItem('radar_risk'); if (rk) document.getElementById('riskPct').value = rk;
+  }catch(e){}
+  document.querySelectorAll('.tabs button').forEach(function(b,i){ b.addEventListener('click', function(){ showTab(i,b); }); });
+  document.getElementById('btnScan').addEventListener('click', loadRadar);
+  document.getElementById('volMin').addEventListener('change', loadRadar);
+  document.getElementById('strict').addEventListener('change', renderRadar);
+  document.getElementById('longBody').addEventListener('click', radarClick);
+  document.getElementById('shortBody').addEventListener('click', radarClick);
+  const pm = document.getElementById('planModal');
+  pm.addEventListener('click', function(e){ if (e.target === pm) closePlan(); });
+  document.getElementById('btnClose').addEventListener('click', closePlan);
+  document.getElementById('planBody').addEventListener('click', function(e){
+    const b = e.target.closest('.iv');
+    if (b && b.dataset.iv) chartLoad(b.dataset.iv, b);
+  });
+  document.getElementById('btnLookup').addEventListener('click', lookup);
+  document.getElementById('btnPlanInput').addEventListener('click', planFromInput);
+  document.getElementById('btnShort').addEventListener('click', function(){ setDir('short'); });
+  document.getElementById('btnLong').addEventListener('click', function(){ setDir('long'); });
+  document.getElementById('btnCalc').addEventListener('click', calc);
+  loadRadar();
+  startLiqFeed();
+})();
+</script>
+</body>
+</html>
