@@ -73,7 +73,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v1.4</span></h1>
+  <h1>合約風控雷達 <span class="badge">v1.8</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -111,6 +111,19 @@
     <h2 class="amber">市場強平流｜即時，≥ $20K</h2>
     <div class="hint">哪裡在爆倉＝哪裡的燃料正被點燃。<span class="r">多單強平</span>向下砸價、<span class="g">空單強平</span>向上推價；連續同向強平＝行情正在自我強化。</div>
     <div id="liqFeed" style="font-size:12.5px;line-height:1.9"><span class="dim">連線中…</span></div>
+  </div>
+</div>
+
+<!-- ================= 診斷 ================= -->
+<div class="page" id="pg-diag">
+  <div class="card">
+    <h2>莊家意圖診斷｜這一單是機會還是陷阱</h2>
+    <div class="hint">用「歷史資金費 × 價格走勢 × 持倉量 OI × 成交量」推演大戶在做什麼：收租陰跌、派發陰漲、真軋空、投降反轉、還是健康趨勢。這是<b>情境判讀，不是預測</b>——它告訴你現在進場是在跟莊家對作還是順風，以及左側進場該等哪個訊號。</div>
+    <div class="row">
+      <input id="diagSym" placeholder="例：BTC、SIREN、OGN" style="flex:1;text-transform:uppercase">
+      <button class="btn" id="btnDiag">診斷</button>
+    </div>
+    <div id="diagOut" style="margin-top:12px"><span class="dim" style="font-size:13px">輸入幣種按「診斷」：多週期指標表（15m/1h/4h/1d 的 RSI／MACD／布林%B）＋莊家意圖情境判讀＋左側進場者的具體行動建議，適合的話一鍵開完整計畫卡。</span></div>
   </div>
 </div>
 
@@ -181,10 +194,11 @@
   </div>
 </div>
 
-<div class="foot">v1.4｜資金費雷達＋交易計畫卡（K線/RSI/MACD/大戶持倉/強平梯子）＋即時強平流＋風控計算器｜自動重試與降級容錯｜數據源 fapi.binance.com（公開端點）｜Pionex 上市清單與費率略有不同，下單前核對</div>
+<div class="foot">v1.8｜資金費雷達＋莊家意圖診斷（費率歷史×價格×OI×量能情境判讀＋多週期布林/RSI/MACD）＋交易計畫卡（進場點＝1h/4h布林×結構前高低×OI建倉成本清算帶×成交量分布聚類共識，K線+布林帶+成交量、大戶持倉、強平梯子）＋即時強平流＋風控計算器｜數據源 fapi.binance.com（公開端點）｜Pionex 上市清單與費率略有不同，下單前核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
+  <button>診斷</button>
   <button>計算器</button>
   <button>規則</button>
 </div>
@@ -340,7 +354,7 @@ function crossInfo(hist){
 }
 
 /* ---------------- K線圖 ---------------- */
-function drawChart(canvasId, bars, lv){
+function drawChart(canvasId, bars, lv, boll){
   const cv = document.getElementById(canvasId);
   if (!cv) return;
   const cw = cv.clientWidth || 320, ch = cv.clientHeight || 230;
@@ -350,17 +364,37 @@ function drawChart(canvasId, bars, lv){
   ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,cw,ch);
   const data = bars.slice(-90);
+  const off = bars.length - data.length;
+  const chK = ch*0.72, volTop = ch*0.76;   // 上 72% K線、下 24% 量能
   let mn = Infinity, mx = -Infinity;
   data.forEach(b=>{ mn=Math.min(mn,Number(b[3])); mx=Math.max(mx,Number(b[2])); });
-  [lv.entry,lv.stop,lv.tp15,lv.tp2].forEach(v=>{ if(v>0){ mn=Math.min(mn,v); mx=Math.max(mx,v);} });
+  [lv.entry,lv.stop,lv.tp15,lv.tp2,lv.chase,lv.liqFar].forEach(v=>{ if(v>0){ mn=Math.min(mn,v); mx=Math.max(mx,v);} });
+  if (boll){ for(let i=off;i<bars.length;i++){ if(boll.up[i]!==null){ mn=Math.min(mn,boll.lo[i]); mx=Math.max(mx,boll.up[i]); } } }
   const pad=(mx-mn)*0.05||mx*0.01; mn-=pad; mx+=pad;
-  const y=v=>ch-(v-mn)/(mx-mn)*ch;
+  const y=v=>chK-(v-mn)/(mx-mn)*chK;
   ctx.strokeStyle='#252d3a'; ctx.fillStyle='#8a94a6'; ctx.font='9px sans-serif'; ctx.textAlign='left';
   for(let i=1;i<=3;i++){
-    const gy=ch*i/4; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(cw,gy); ctx.stroke();
+    const gy=chK*i/4; ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(cw,gy); ctx.stroke();
     ctx.fillText(px(mn+(mx-mn)*(1-i/4)), 3, gy-3);
   }
   const step=cw/(data.length+2), bw=Math.max(1.5,step*0.62);
+  let vMax=0; data.forEach(b=>{ vMax=Math.max(vMax,Number(b[7])); });
+  if (vMax>0) data.forEach((b,i)=>{
+    const xC=step*(i+1.5), vh=Number(b[7])/vMax*(ch-volTop);
+    ctx.fillStyle=Number(b[4])>=Number(b[1])?'rgba(46,189,133,.45)':'rgba(246,70,93,.45)';
+    ctx.fillRect(xC-bw/2, ch-vh, bw, vh);
+  });
+  function bLine(series, color){
+    ctx.strokeStyle=color; ctx.beginPath();
+    let started=false;
+    for(let i=0;i<data.length;i++){
+      const v=series[off+i]; if(v===null||v===undefined) continue;
+      const xC=step*(i+1.5);
+      if(!started){ ctx.moveTo(xC,y(v)); started=true; } else ctx.lineTo(xC,y(v));
+    }
+    ctx.stroke();
+  }
+  if (boll){ bLine(boll.up,'rgba(79,156,255,.5)'); bLine(boll.mid,'rgba(240,185,11,.45)'); bLine(boll.lo,'rgba(79,156,255,.5)'); }
   data.forEach((b,i)=>{
     const o=Number(b[1]),h=Number(b[2]),l=Number(b[3]),c=Number(b[4]);
     const xC=step*(i+1.5);
@@ -380,10 +414,12 @@ function drawChart(canvasId, bars, lv){
     ctx.fillText(label+' '+px(v), cw-3, y(v)-3);
     ctx.textAlign='left';
   }
-  line(lv.entry,'#f0b90b','進場');
+  line(lv.chase,'#8a94a6','追價');
+  line(lv.liqFar,'#a855f7','共識帶緣');
   line(lv.stop,'#f6465d','停損');
   line(lv.tp15,'#2ebd85','TP1');
   line(lv.tp2,'#2ebd85','TP2');
+  line(lv.entry,'#f0b90b','★回撤進場');
 }
 async function chartLoad(interval, btn){
   if (!plan) return;
@@ -392,19 +428,22 @@ async function chartLoad(interval, btn){
   const indi = document.getElementById('indiBox');
   try{
     const k = await fetch(FAPI+'/fapi/v1/klines?symbol='+plan.sym+'USDT&interval='+interval+'&limit=200').then(r=>{if(!r.ok)throw 0;return r.json();});
-    drawChart('pcv', k, plan);
     const closes = k.map(b=>Number(b[4]));
+    const bl = bollCalc(closes,20,2);
+    drawChart('pcv', k, plan, bl);
     const rsi = rsiWilder(closes,14);
     const m = macdCalc(closes);
     const h = m.hist.filter(v=>v!==null);
     const cur=h[h.length-1], prev=h[h.length-2];
     const ci = crossInfo(m.hist);
+    const pb = pctBOf(closes, bl, closes.length-1);
     let rsiTxt = rsi===null?'—':fmt(rsi,1);
     let rsiCls = rsi===null?'dim':(rsi>=70?'r':(rsi<=30?'g':'dim'));
     let rsiZone = rsi===null?'':(rsi>=70?'（超買）':(rsi<=30?'（超賣）':'（中性）'));
     let histTxt = (cur>=0?'+':'')+cur.toPrecision(3)+(Math.abs(cur)>=Math.abs(prev)?'（放大）':'（收斂）');
     indi.innerHTML = interval+'｜RSI(14)：<b class="'+rsiCls+'">'+rsiTxt+'</b>'+rsiZone
-      +'｜MACD 柱：<b class="'+(cur>=0?'g':'r')+'">'+histTxt+'</b>｜'+ci.txt;
+      +'｜MACD 柱：<b class="'+(cur>=0?'g':'r')+'">'+histTxt+'</b>｜'+ci.txt
+      +'｜%B：<b>'+(pb===null?'—':fmt(pb,2))+'</b>'+(pb===null?'':(pb>1?'（上軌外）':(pb<0?'（下軌外）':'')));
   }catch(e){ indi.innerHTML = '<span class="dim">K線載入失敗</span>'; }
 }
 
@@ -440,41 +479,82 @@ async function openPlan(sym, side){
     const p = await fx(FAPI+'/fapi/v1/premiumIndex?symbol='+S, '行情');
     const t = await safe(FAPI+'/fapi/v1/ticker/24hr?symbol='+S);
     const k = await safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1h&limit=200');
+    const k4 = await safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=4h&limit=120');
+    const oiH4 = await safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=4h&limit=42');
     const entry = Number(p.markPrice), fr = Number(p.lastFundingRate)*100;
     const chg = t ? Number(t.priceChangePercent) : null, volM = t ? Number(t.quoteVolume)/1e6 : null;
 
-    /* --- 停損/停利/倉位 --- */
+    /* --- 結構 / ATR / 清算密集帶 / 進場點 --- */
+    const mmr = 0.005;
     const hasK = !!(k && k.length > 10);
     const w = hasK ? k.slice(-48) : [];
-    const structHi = hasK ? Math.max.apply(null, w.map(b=>Number(b[2]))) * 1.01 : Infinity;
-    const structLo = hasK ? Math.min.apply(null, w.map(b=>Number(b[3]))) * 0.99 : 0;
-    let stop, stopSrc;
-    if (side==='long'){
-      stop = Math.max(structLo, entry*0.88);
-      stopSrc = (structLo > entry*0.88) ? '2日結構低點下方' : '固定 -12%';
-      if (stop >= entry){ stop = entry*0.88; stopSrc = '固定 -12%'; }
+    const structHi = hasK ? Math.max.apply(null, w.map(b=>Number(b[2]))) * 1.01 : entry*1.1;
+    const structLo = hasK ? Math.min.apply(null, w.map(b=>Number(b[3]))) * 0.99 : entry*0.9;
+    const swingHi = hasK ? Math.max.apply(null, w.map(b=>Number(b[2]))) : entry*1.1;
+    const swingLo = hasK ? Math.min.apply(null, w.map(b=>Number(b[3]))) : entry*0.9;
+    let atrPct = 0.03;
+    if (hasK){ const ab=k.slice(-14); let s=0; ab.forEach(b=>{ s += (Number(b[2])-Number(b[3]))/Number(b[4]); }); atrPct = s/ab.length; }
+    // v1.8 進場點引擎：布林(1h/4h)×結構前高低×OI建倉成本清算帶×成交量分布 → 聚類共識帶
+    const eng = hasK ? entryEngine(side, entry, k, k4, oiH4) : null;
+    const chaseMid = entry;
+    let pullback, pbSrcs, pbAlts, bandNear, bandFar, engMode;
+    if (eng && eng.best){
+      engMode = true;
+      pullback = eng.best.mid;
+      pbSrcs = eng.best.srcs.join('＋');
+      pbAlts = eng.bands.slice(1);
+      bandNear = side==='short' ? eng.best.lo : eng.best.hi;
+      bandFar  = side==='short' ? eng.best.hi : eng.best.lo;
     } else {
-      stop = Math.min(structHi, entry*1.25);
-      stopSrc = (structHi < entry*1.25) ? '2日結構高點上方' : '固定 +25%';
-      if (stop <= entry){ stop = entry*1.25; stopSrc = '固定 +25%'; }
+      engMode = false;   // 數據不足：退回結構/ATR，誠實標示
+      if (side==='long'){
+        pullback = Math.min(Math.max(Math.max(swingLo*1.003, entry*(1-1.2*atrPct)), entry*0.94), entry*0.992);
+      } else {
+        pullback = Math.max(Math.min(Math.min(swingHi*0.997, entry*(1+1.2*atrPct)), entry*1.06), entry*1.008);
+      }
+      pbSrcs = '結構/ATR（布林、OI、量分布數據不足，降級計算）';
+      pbAlts = [];
+      bandNear = side==='long' ? entry*(1-1/50) : entry*(1+1/50);
+      bandFar  = side==='long' ? entry*(1-1/25) : entry*(1+1/25);
     }
-    const risk1 = Math.abs(entry - stop);
-    const dist = risk1/entry;
-    const tp15 = side==='long' ? entry+1.5*risk1 : entry-1.5*risk1;
-    const tp2  = side==='long' ? entry+2*risk1  : entry-2*risk1;
-    plan = {sym:sym, side:side, entry:entry, stop:stop, tp15:tp15, tp2:tp2};
+    const pullbackDepth = Math.abs(pullback-entry)/entry;
+
+    /* --- 停損/停利/倉位（以★回撤進場點為基準） --- */
+    let stop, stopSrc;
+    if (engMode){
+      const buf = Math.max(0.006, 0.6*atrPct);   // 帶外緩衝：0.6×ATR、至少 0.6%——停損掛在共識帶外側
+      if (side==='short'){
+        stop = bandFar*(1+buf); stopSrc = '共識帶外＋0.6×ATR';
+        if (stop > pullback*1.25){ stop = pullback*1.25; stopSrc = '進場+25%硬上限'; }
+      } else {
+        stop = bandFar*(1-buf); stopSrc = '共識帶外－0.6×ATR';
+        if (stop < pullback*0.88){ stop = pullback*0.88; stopSrc = '進場-12%硬上限'; }
+      }
+    } else if (side==='long'){
+      stop = Math.max(structLo, pullback*0.90);
+      stopSrc = (structLo > pullback*0.90 && structLo < pullback) ? '2日結構低點下方' : '進場-10%';
+      if (stop >= pullback){ stop = pullback*0.90; stopSrc = '進場-10%'; }
+    } else {
+      stop = Math.min(structHi, pullback*1.20);
+      stopSrc = (structHi < pullback*1.20 && structHi > pullback) ? '2日結構高點上方' : '進場+20%';
+      if (stop <= pullback){ stop = pullback*1.20; stopSrc = '進場+20%'; }
+    }
+    const risk1 = Math.abs(pullback - stop);
+    const dist = risk1/pullback;
+    const tp15 = side==='long' ? pullback+1.5*risk1 : pullback-1.5*risk1;
+    const tp2  = side==='long' ? pullback+2*risk1  : pullback-2*risk1;
+    plan = {sym:sym, side:side, entry:pullback, chase:chaseMid, stop:stop, tp15:tp15, tp2:tp2, liqNear:bandNear, liqFar:bandFar};
 
     const eq = Number(localStorage.getItem('radar_eq')) || 10000;
     const riskPct = (Number(localStorage.getItem('radar_risk')) || 2)/100;
     const riskUsd = eq*riskPct;
     const cap = eq*(side==='long'?0.025:0.05);
     const useN = Math.min(riskUsd/dist, cap);
-    const qty = useN/entry;
-    const mmr = 0.005;
-    const maxLev = side==='short' ? 1/((stop/entry)-1+mmr) : 1/((1-stop/entry)+mmr);
+    const qty = useN/pullback;
+    const maxLev = side==='short' ? 1/((stop/pullback)-1+mmr) : 1/((1-stop/pullback)+mmr);
     const lev = Math.max(2, Math.min(25, Math.floor(maxLev*0.7)));
     const margin = useN/lev;
-    const liq = side==='short' ? entry*(1+1/lev-mmr) : entry*(1-1/lev+mmr);
+    const liq = side==='short' ? pullback*(1+1/lev-mmr) : pullback*(1-1/lev+mmr);
     const liqBad = side==='short' ? (liq<=stop) : (liq>=stop);
 
     /* --- 動能 (1h) --- */
@@ -487,7 +567,9 @@ async function openPlan(sym, side){
     /* --- 理由 --- */
     let whys = [];
     if (side==='short'){
-      whys.push('多方在付你錢：資金費 <b class="r">+'+fmt(fr,4)+'%/期</b>，持有期間收費');
+      if (fr > 0.005) whys.push('多方在付你錢：資金費 <b class="r">+'+fmt(fr,4)+'%/期</b>，持有期間收費');
+      else if (fr < -0.005) whys.push('<span class="amber">⚠ 費率為負（'+fmt(fr,4)+'%/期）＝這張空單要「付租」給多方——逆收租方向，非你的主場，需要更強的理由</span>');
+      else whys.push('資金費 '+fmt(fr,4)+'%/期（中性，無收租優勢）');
       if (chg!==null) whys.push('24h '+(chg<0?'<b class="r">':'<b>')+fmt(chg,2)+'%</b>' + (chg<-5?'——下跌＋正費率＝你的主場型態':''));
       if (rsi!==null){
         if (rsi<25) whys.push('<span class="amber">⚠ 1h RSI '+fmt(rsi,1)+'：超賣——勿追空，等反彈回 40–50 再進</span>');
@@ -503,7 +585,9 @@ async function openPlan(sym, side){
       whys.push('<span class="amber">失效條件：</span>資金費轉負（擁擠換邊）或價格站上停損位 → 出場，不補保證金');
     } else {
       if (chg!==null && chg <= 0) whys.push('<span class="amber">⚠ 價格尚未轉強——違反嚴格模式，等回穩不破再進</span>');
-      whys.push('空方擁擠且在付錢：資金費 <b class="g">'+fmt(fr,4)+'%/期</b>，做多反而收費');
+      if (fr < -0.005) whys.push('空方擁擠且在付錢：資金費 <b class="g">'+fmt(fr,4)+'%/期</b>，做多反而收費');
+      else if (fr > 0.005) whys.push('<span class="amber">⚠ 費率為正（+'+fmt(fr,4)+'%/期）＝這張多單要「付租」給空方——逆收租方向，非軋空型態</span>');
+      else whys.push('資金費 '+fmt(fr,4)+'%/期（中性，無收租優勢）');
       if (chg!==null) whys.push('價格動能：24h '+(chg>=0?'<b class="g">+':'<b class="r">')+fmt(chg,2)+'%</b>（軋空'+(chg>10?'進行中——勿追高，等回踩':'醞釀')+'）');
       if (rsi!==null){
         if (rsi>75) whys.push('<span class="amber">⚠ 1h RSI '+fmt(rsi,1)+'：超買——勿追多，等回踩</span>');
@@ -561,14 +645,12 @@ async function openPlan(sym, side){
     });
     ladder += '</tbody></table><div class="hint" style="margin-top:6px">以現價開倉的幾何估算——插針常先掃向強平密集帶再走真方向。這不是 Coinglass 的實際掛單熱圖（那需要付費數據＋推估模型），但「磁鐵位」的邏輯相同。</div>';
 
-    const entLo = side==='long' ? entry*0.995 : entry;
-    const entHi = side==='long' ? entry : entry*1.005;
-
     const chartSec = hasK
       ? '<div class="row" style="margin:2px 0 6px">'
         +'<button class="btn ghost iv" data-iv="15m">15m</button>'
         +'<button class="btn ghost iv on" data-iv="1h">1h</button>'
         +'<button class="btn ghost iv" data-iv="4h">4h</button>'
+        +'<button class="btn ghost iv" data-iv="1d">1d</button>'
       +'</div>'
       +'<canvas id="pcv"></canvas>'
       +'<div class="indi" id="indiBox">計算中…</div>'
@@ -576,8 +658,16 @@ async function openPlan(sym, side){
     body.innerHTML = chartSec
       +'<div class="sect">為什麼做這一單</div>'
       +'<div class="why">'+whys.map(x=>'• '+x).join('<br>')+'</div>'
-      +'<div class="sect">價位與倉位</div>'
-      + '<div class="lvl"><span class="dim">進場區（掛限價）</span><b>'+px(entLo)+' ~ '+px(entHi)+'</b></div>'
+      +'<div class="sect">進場策略（點位＝多來源共識，不是現價投影）</div>'
+      + '<div class="lvl"><span class="dim">追價進場（動能極強、怕踏空才用）</span><b class="amber">'+px(chaseMid)+'</b></div>'
+      + '<div class="lvl"><span class="dim">★回撤進場（推薦，掛限價等它來）</span><b class="g">'+px(pullback)+'（'+(side==='short'?'上方':'下方')+' '+fmt(pullbackDepth*100,1)+'%）</b></div>'
+      + '<div class="lvl"><span class="dim">共識帶範圍</span><b>'+(bandNear===bandFar?px(bandNear)+'（單點）':px(bandNear)+' → '+px(bandFar))+'</b></div>'
+      + '<div class="lvl"><span class="dim">點位依據'+(engMode&&eng.best.srcs.length>=2?'（多源互證）':'')+'</span><b style="font-size:12px">'+pbSrcs+'</b></div>'
+      + (engMode&&eng.best.srcs.length<2?'<div class="hint" style="margin:2px 0 0;color:#f0b90b">單一來源、無互相印證——帶的硬度弱：倉位打對折，或等價格接近次候選帶再加。</div>':'')
+      + (pbAlts && pbAlts.length ? '<div class="hint" style="margin:4px 0 0">次候選帶：'+pbAlts.map(function(b){return px(b.mid)+'（'+b.srcs.join('/')+'）';}).join('、')+'</div>' : '')
+      + (rsi!==null ? '<div class="hint" style="margin:4px 0 0">掛單時機（1h RSI '+fmt(rsi,0)+'）：'+(side==='short' ? (rsi>=60?'已偏熱——價格衝進共識帶的機率高，掛好等掃針':'尚未過熱——可能衝不到帶；等 RSI 升到 60+ 再期待掃針，勿因不耐改追價') : (rsi<=40?'已偏冷——價格殺進共識帶的機率高，掛好等掃針':'未超跌——可能殺不到帶；等 RSI 跌到 40- 再期待掃針，勿因不耐改追價'))+'</div>' : '')
+      + '<div class="hint" style="margin:4px 0 8px">共識帶來源＝1h/4h 布林軌、2日結構前高低、OI 建倉成本反推的 50x/25x 強平磁鐵、成交量高密集區——相距 0.8% 內互相印證才成帶，來源越多帶越硬。以下停損/停利/倉位皆以★回撤點計算。<b>失效：價格收破帶遠緣 '+px(bandFar)+' 仍不反轉＝真突破非掃針 → 取消此單。</b>（清算帶由 OI 增量時段成本推算，是免費數據近似，非 Coinglass 付費逐倉熱圖）</div>'
+      +'<div class="sect">停損停利與倉位</div>'
       + '<div class="lvl"><span class="dim">停損（'+stopSrc+'，掛在系統上）</span><b class="r">'+px(stop)+'（'+fmt(dist*100,1)+'%距離）</b></div>'
       + '<div class="lvl"><span class="dim">停利 1（RR 1.5，平一半）</span><b class="g">'+(tp15>0?px(tp15):'—')+'</b></div>'
       + '<div class="lvl"><span class="dim">停利 2（RR 2，剩餘移動停損）</span><b class="g">'+(tp2>0?px(tp2):'—')+'</b></div>'
@@ -589,6 +679,8 @@ async function openPlan(sym, side){
           : '<div class="ok">強平價在停損之外，結構安全。停損單要真的掛上去。</div>')
       +'<div class="sect">大戶動向（巨鯨代理數據）</div>'
       + '<div id="whaleBox"><span class="dim" style="font-size:12.5px">大戶數據載入中…</span></div>'
+      +'<div class="sect">莊家意圖判讀</div>'
+      + '<div id="mmBox"><span class="dim" style="font-size:12.5px">判讀中…（費率歷史×日K×OI）</span></div>'
       +'<div class="sect">強平梯子（燃料在哪裡）</div>'
       + ladder
       + '<div class="hint" style="margin-top:10px">此卡由規則自動生成：它回答「為什麼、怎麼做」，不保證「這一單會贏」。十筆虧四五筆是常態——系統的利潤來自停損小虧＋停利大賺的長期重複。停損不是建議，是這張卡成立的前提。下單前到 Pionex 核對。</div>';
@@ -605,6 +697,16 @@ async function openPlan(sym, side){
       const oi     = await safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=1h&limit=25');
       const wb = document.getElementById('whaleBox');
       if (wb) wb.innerHTML = buildWhale(topPos, glob, taker, oi);
+      const fh2  = await safe(FAPI+'/fapi/v1/fundingRate?symbol='+S+'&limit=200');
+      const kd2  = await safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=35');
+      const oiH2 = await safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=4h&limit=42');
+      const mb = document.getElementById('mmBox');
+      if (mb){
+        const F = mmFeatures(fh2, kd2, oiH2, chg);
+        const V = mmEngine(F);
+        mb.innerHTML = '<div class="out" style="margin-top:0"><b class="'+V.cls+'">'+V.icon+' '+V.name+'</b><div class="dim" style="margin-top:4px;font-size:12.5px;line-height:1.7">'+V.story+'</div></div>'
+          +'<div class="row" style="margin-top:8px"><button class="btn ghost" data-godiag="'+sym+'" style="font-size:12.5px;padding:7px 12px">完整診斷（多週期指標＋行動建議）→</button></div>';
+      }
     })();
   }catch(e){
     if (e && e.code === 'notlisted'){
@@ -614,6 +716,311 @@ async function openPlan(sym, side){
       body.innerHTML = '<div class="warn">'+sym+'：資料抓取失敗——'+d+'。<br>已自動重試仍失敗，多半是目前環境（預覽面板／公司網路）限流或擋了 Binance 網域。請按「關閉」再點一次，或把檔案用一般瀏覽器（Chrome／Safari）開啟。</div>';
     }
   }
+}
+
+/* ---------------- 布林帶 ---------------- */
+function bollCalc(closes, n, k){
+  n=n||20; k=k||2;
+  const mid=new Array(closes.length).fill(null), up=new Array(closes.length).fill(null), lo=new Array(closes.length).fill(null);
+  for(let i=n-1;i<closes.length;i++){
+    let s=0; for(let j=i-n+1;j<=i;j++) s+=closes[j];
+    const m=s/n;
+    let v=0; for(let j=i-n+1;j<=i;j++) v+=(closes[j]-m)*(closes[j]-m);
+    const sd=Math.sqrt(v/n);
+    mid[i]=m; up[i]=m+k*sd; lo[i]=m-k*sd;
+  }
+  return {mid:mid, up:up, lo:lo};
+}
+function pctBOf(closes, bl, i){
+  if(!bl || bl.up[i]===null || !(bl.up[i]>bl.lo[i])) return null;
+  return (closes[i]-bl.lo[i])/(bl.up[i]-bl.lo[i]);
+}
+
+/* ---------------- 莊家意圖引擎 ---------------- */
+/* 特徵萃取：費率歷史(日化分桶，統一 8h/4h/1h 結算制)×日K×OI×量能 */
+function mmFeatures(fh, kd, oiH, chg24){
+  const F={missing:[]};
+  if (fh && fh.length>2){
+    const nowT=Number(fh[fh.length-1].fundingTime);
+    F.frD=[0,0,0,0,0,0,0]; F.frCnt=[0,0,0,0,0,0,0];
+    fh.forEach(function(x){
+      const d=Math.floor((nowT-Number(x.fundingTime))/86400000);
+      if(d>=0&&d<7){ F.frD[d]+=Number(x.fundingRate)*100; F.frCnt[d]++; }
+    });
+    F.deepNegDays=0; for(let i=0;i<7;i++){ if(F.frCnt[i]>0 && F.frD[i]<=-0.3) F.deepNegDays++; else break; }
+    F.highPosDays=0; for(let i=0;i<7;i++){ if(F.frCnt[i]>0 && F.frD[i]>=0.3) F.highPosDays++; else break; }
+    F.wasExtreme=false;
+    for(let i=2;i<7;i++){ if(F.frCnt[i]>0 && Math.abs(F.frD[i])>=0.25) F.wasExtreme=true; }
+    F.frBackToNeutral = Math.abs(F.frD[0])<0.08 && F.wasExtreme;
+  } else F.missing.push('費率歷史');
+  if (kd && kd.length>=8){
+    const c=kd.map(function(b){return Number(b[4]);});
+    const q=kd.map(function(b){return Number(b[7]);});
+    const n=c.length;
+    F.chg30=(c[n-1]/Number(kd[0][1])-1)*100;
+    const hi=Math.max.apply(null,kd.map(function(b){return Number(b[2]);}));
+    const lo2=Math.min.apply(null,kd.map(function(b){return Number(b[3]);}));
+    F.hiLo=lo2>0?hi/lo2:1;
+    F.offHigh=(c[n-1]/hi-1)*100;
+    F.upFromLow=lo2>0?(c[n-1]/lo2-1)*100:0;
+    const d5=[]; for(let i=Math.max(1,n-5);i<n;i++) d5.push((c[i]/c[i-1]-1)*100);
+    function mean(a){ return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:0; }
+    F.sum5=d5.reduce(function(a,b){return a+b;},0);
+    F.pumped = F.upFromLow>=50 || F.chg30>=60 || F.sum5>=25;   // 方向性拉高：距35日低點漲幅／30d漲幅／近5日急拉
+    F.downDays=d5.filter(function(v){return v<0;}).length;
+    F.upDays=d5.filter(function(v){return v>0;}).length;
+    F.maxDrop=d5.length?Math.min.apply(null,d5):0;
+    F.maxPump=d5.length?Math.max.apply(null,d5):0;
+    const base=q.slice(Math.max(0,n-9), n-2);
+    F.volSpike = base.length ? Math.max(q[n-1],q[n-2])/Math.max(1,mean(base)) : 1;
+    F.slowBleed = F.downDays>=4 && F.sum5<=-3 && F.sum5>=-25 && F.maxDrop>-9 && F.volSpike<2.2;
+    F.slowGrind = F.upDays>=4 && F.sum5>=3 && F.sum5<=25 && F.maxPump<9 && F.volSpike<2.2;
+    const bl=bollCalc(c,20,2);
+    F.pctB1d=pctBOf(c,bl,n-1);
+    F.c24=(chg24!==null&&chg24!==undefined)?chg24:((n>=2)?(c[n-1]/c[n-2]-1)*100:0);
+    F.capDown = F.c24<=-15 && F.volSpike>=2.2 && (F.pctB1d===null||F.pctB1d<0.08);
+    F.capUp   = F.c24>=20  && F.volSpike>=2.2 && (F.pctB1d===null||F.pctB1d>0.92);
+  } else F.missing.push('日K歷史');
+  if (oiH && oiH.length>=3){
+    const ov=oiH.map(function(x){return Number(x.sumOpenInterestValue);});
+    const n=ov.length;
+    F.oiChg24 = n>=7 ? (ov[n-1]/ov[n-7]-1)*100 : (ov[n-1]/ov[0]-1)*100;
+    F.oiChg7d = (ov[n-1]/ov[0]-1)*100;
+    const mx=Math.max.apply(null,ov), mn=Math.min.apply(null,ov);
+    F.oiPos = mx>mn ? (ov[n-1]-mn)/(mx-mn) : 0.5;
+    F.oiDump = F.oiChg24<=-12;
+    F.oiHigh = F.oiPos>=0.6;
+  } else F.missing.push('持倉量歷史');
+  return F;
+}
+/* 四維狀態摘要（證據列表） */
+function mmDims(F){
+  const rows=[];
+  if(F.frD){
+    let tag = Math.abs(F.frD[0])<0.08?'（中性）':(F.deepNegDays>=2?'（連續深負 '+F.deepNegDays+' 天＝空軍持續付租）':(F.highPosDays>=2?'（連續高正 '+F.highPosDays+' 天＝多軍持續付租）':''));
+    rows.push('費率：日化 <b>'+fmt(F.frD[0],2)+'%</b>'+tag+'｜7日軌跡（舊→新）'+F.frD.slice().reverse().map(function(v){return fmt(v,1);}).join(' → '));
+  }
+  if(F.c24!==undefined) rows.push('價格：30d '+(F.chg30>=0?'+':'')+fmt(F.chg30,0)+'%（距35日高點 '+fmt(F.offHigh,0)+'%、距低點 +'+fmt(F.upFromLow,0)+'%）｜近5日 '+(F.sum5>=0?'+':'')+fmt(F.sum5,1)+'%（'+F.downDays+'跌'+F.upDays+'漲）｜24h '+(F.c24>=0?'+':'')+fmt(F.c24,1)+'%');
+  if(F.oiChg24!==undefined) rows.push('持倉量：24h '+(F.oiChg24>=0?'+':'')+fmt(F.oiChg24,1)+'%｜7d '+(F.oiChg7d>=0?'+':'')+fmt(F.oiChg7d,1)+'%｜位於 7 日區間 '+fmt(F.oiPos*100,0)+'% 分位'+(F.oiDump?'（驟降＝倉位出清中）':(F.oiHigh?'（高位＝籌碼還在場內）':'')));
+  if(F.volSpike!==undefined) rows.push('量能：近兩日峰量 ＝ 前 7 日均量的 '+fmt(F.volSpike,1)+'x'+(F.volSpike>=2.2?'（爆量）':''));
+  return rows;
+}
+/* 五情境判讀：回傳 {icon,name,cls,story,actions[]} */
+function mmEngine(F){
+  const fr0 = F.frD ? F.frD[0] : null;
+  if (F.capDown && F.oiDump) return {icon:'🩸', name:'投降下殺——多軍出清（左側做多黃金區）', cls:'g',
+    story:'24h '+fmt(F.c24,1)+'%＋量能 '+fmt(F.volSpike,1)+'x 爆量＋OI 24h '+fmt(F.oiChg24,1)+'%：賣壓來自倉位被強平／割肉「投降」，不是新空單。加速趕底＋倉位出清＝短期底部常在附近。',
+    actions:['左側做多候選：等第一根止跌 K（不創新低）分批進，小倉＋鐵停損——投降底常再插針一次',
+             '別追空：燃料（多軍倉位）已燒完，往下的 RR 極差',
+             '加分確認：此刻費率若轉深負＝散戶開始追空＝反彈燃料再+1']};
+  if (F.capUp && F.oiDump) return {icon:'🚀', name:'軋空出清——空軍爆倉完畢（左側做空候選區）', cls:'r',
+    story:'24h +'+fmt(F.c24,1)+'%＋爆量＋OI 24h '+fmt(F.oiChg24,1)+'%：推力是空單強平的被動買盤，不是新買家。爆倉買盤燒完後，上方沒有接力。',
+    actions:['左側做空候選：等衝高滯漲（1h 不再創新高）再進，別在噴的當下接',
+             '費率若仍深負＝場內還有活著的空軍，可能再軋一段——等費率回 ±0.05%/日 內更安全',
+             '進場後停損掛結構高點上方——這種頂部插針是常態']};
+  if (fr0!==null && fr0<=-0.3 && F.c24!==undefined && F.c24>=8 && (F.oiChg24<=-8 || F.volSpike>=2)) return {icon:'⚡', name:'真軋空進行中', cls:'g',
+    story:'空軍日付 '+fmt(Math.abs(fr0),2)+'% 租金還在被拉爆：24h +'+fmt(F.c24,1)+'%、'+(F.oiChg24<=-8?'OI 24h '+fmt(F.oiChg24,1)+'%（空單被迫平倉推價）':'爆量 '+fmt(F.volSpike,1)+'x')+'。軋空的燃料＝還活著的空單，OI 掉多少＝燃料燒掉多少。',
+    actions:['手上有空單：這不是「抱到轉綠」的時候——強平會比你的耐心先到，先減倉',
+             '想做多只能等回踩（15m/1h 中軌），追高＝接最後一棒',
+             '熄火訊號：OI 止跌＋費率回中性——之後才輪到空單重新進場']};
+  if (F.pumped && fr0!==null && fr0<=-0.3 && F.slowBleed) return {icon:'🕸', name:'高位陰跌收租——做空者的陷阱區', cls:'amber',
+    story:'劇本：先拉高（距 35 日低點 +'+fmt(F.upFromLow,0)+'%／30d '+(F.chg30>=0?'+':'')+fmt(F.chg30,0)+'%）引空軍進場（費率日化 '+fmt(fr0,2)+'%＝空軍每天付 '+fmt(Math.abs(fr0),2)+'% 給對手），現在不拉不砸、慢慢陰跌（近 5 日 '+fmt(F.sum5,1)+'%、無爆量）：①收你的資金費 ②高位分批出貨 ③跌得夠慢讓你捨不得走。真殺盤通常等費率回歸中性（空軍付不動離場）才來。',
+    actions:['現在進空＝幫莊家付租＋承擔隨時被插針軋空。想空，等費率回到 ±0.05%/日 內（大戶動手窗）再進',
+             '若出現單日 -15%＋爆量＋OI 驟降＝投降加速——那是舊空單的「止盈區」，不是新空單的進場區',
+             '已持空單：停損掛好、把每天 '+fmt(Math.abs(fr0),2)+'% 租金算進成本，絕不加倉']};
+  if (F.pumped && fr0!==null && fr0<=-0.3 && F.c24!==undefined && Math.abs(F.c24)<8) return {icon:'⏳', name:'高位收租對峙——陰跌劇本的前夜', cls:'amber',
+    story:'拉高已完成（距 35 日低點 +'+fmt(F.upFromLow,0)+'%／30d '+(F.chg30>=0?'+':'')+fmt(F.chg30,0)+'%），空軍重壓進場付租（費率日化 '+fmt(fr0,2)+'%＝空軍每天付 '+fmt(Math.abs(fr0),2)+'% 給對手），價格暫時不上不下（24h '+(F.c24>=0?'+':'')+fmt(F.c24,1)+'%）。莊家兩條劇本都對空軍不利：①轉入陰跌＝邊收租邊高位出貨（慢慢磨你）②再拉一波＝直接軋爆。真殺盤通常等費率回歸中性才來。',
+    actions:['先別進空：此刻進場＝兩個劇本都先讓你付租、其中一個直接讓你爆',
+             '等兩個訊號之一：費率回到 ±0.05%/日 內（大戶動手窗）、或陰跌成形（連 4 日小陰跌）再重新診斷',
+             '若再暴拉＋OI 驟降＝軋空出清完畢，反而升級為左側做空候選（等滯漲進）']};
+  if (fr0!==null && fr0>=0.3 && F.slowGrind) return {icon:'🐌', name:'陰漲收租派發——多軍被養，空單再等等', cls:'amber',
+    story:'多軍日付 '+fmt(fr0,2)+'% 費率，價格緩漲不爆發（近 5 日 +'+fmt(F.sum5,1)+'%、無爆量）：莊家邊收多軍租金、邊在緩漲中把籌碼派發給追高者。派發完的下殺才是空單主菜。',
+    actions:['這是你主場型態的「前置期」：現在進空雖收租，但價格陰漲會一路磨你的保證金',
+             '進場訊號＝滯漲：跌破 1h 中軌、或 24h 轉負而費率仍高正——那時空單＝收租＋順方向雙重順風',
+             '做多＝幫忙抬轎，不做']};
+  if (F.frBackToNeutral && F.sum5!==undefined && Math.abs(F.sum5)<6) return {icon:'🎯', name:'費率回歸中性——大戶選方向的窗口', cls:'amber',
+    story:'前幾天費率曾極端（7 日軌跡見下），現在回到 '+fmt(fr0,2)+'%/日＋價格近 5 日僅 '+(F.sum5>=0?'+':'')+fmt(F.sum5,1)+'%：被收租的一方已離場、收租局結束。真方向的選擇通常在這個窗口出現。',
+    actions:['左側布局窗：方向看 4h/1d 布林位置＋大戶持倉（開計畫卡看大戶多空比）',
+             '小倉試探＋鐵停損：窗口期的第一根大 K 常是假動作',
+             '若費率再度極端化＝重新進入收租循環，退出等待']};
+  if (fr0!==null && Math.abs(fr0)<0.15 && F.oiChg7d!==undefined && F.oiChg7d>=5 && F.volSpike<2.2 && F.pctB1d!==null && (F.pctB1d>=0.6||F.pctB1d<=0.4)) return {icon:'🌊', name:'健康趨勢（順勢市場）——不是莊家收租局', cls:'dim',
+    story:'費率溫和（'+fmt(fr0,2)+'%/日）＋OI 7d +'+fmt(F.oiChg7d,1)+'%（新資金持續進場）＋無爆量：這是真實買賣堆出來的'+(F.pctB1d>=0.6?'升勢':'跌勢')+'，不是收租劇本。',
+    actions:['左側逆勢＝接刀。這種行情不逆做——你 6 月的大回撤就是這型態裡接出來的',
+             '要參與只能順勢等回踩（1h/4h 中軌），但那不是你的主打法',
+             '等它變質：費率極端化、或爆量趕頂／趕底，才輪到左側進場']};
+  return {icon:'⬜', name:'無明顯莊家情境', cls:'dim',
+    story:'費率×價格×OI×量能目前拼不出可辨識的劇本'+(F.missing.length?'（缺：'+F.missing.join('、')+'）':'')+'。',
+    actions:['回雷達頁用「資金費＋動能」選標的，或換一檔診斷',
+             '新上市幣缺費率／OI 歷史＝不確定性本身，倉位打折']};
+}
+
+/* ---------------- 進場點引擎（v1.8）：點位由真實結構驅動，不是現價投影 ---------------- */
+function volumeProfile(k, bins){
+  if(!k || k.length<20) return null;
+  bins=bins||50;
+  let pMin=Infinity, pMax=-Infinity;
+  k.forEach(function(b){ pMin=Math.min(pMin,Number(b[3])); pMax=Math.max(pMax,Number(b[2])); });
+  if(!(pMax>pMin)) return null;
+  const w=(pMax-pMin)/bins;
+  const vol=new Array(bins).fill(0);
+  k.forEach(function(b){
+    const lo=Number(b[3]), hi=Number(b[2]), qv=Number(b[7]);
+    let i0=Math.floor((lo-pMin)/w), i1=Math.floor((hi-pMin)/w);
+    i0=Math.max(0,Math.min(bins-1,i0)); i1=Math.max(0,Math.min(bins-1,i1));
+    const per=qv/(i1-i0+1);
+    for(let i=i0;i<=i1;i++) vol[i]+=per;
+  });
+  const avg=vol.reduce(function(a,b){return a+b;},0)/bins;
+  return {pMin:pMin, w:w, vol:vol, avg:avg};
+}
+function hvnNear(vp, entry, side){
+  if(!vp) return null;
+  const c=[];
+  for(let i=0;i<vp.vol.length;i++){
+    if(vp.vol[i]>=vp.avg*1.5){
+      const p=vp.pMin+vp.w*(i+0.5);
+      if(side==='short' ? p>entry*1.004 : p<entry*0.996) c.push(p);
+    }
+  }
+  if(!c.length) return null;
+  c.sort(function(a,b){ return Math.abs(a-entry)-Math.abs(b-entry); });
+  return c[0];
+}
+function oiCostMagnets(oiH, k4, entry, side){
+  // OI 增量最大的建倉時段 → 該時段均價＝倉位成本 → 對向 50x/25x 強平價＝真掃針磁鐵
+  if(!oiH || oiH.length<8 || !k4 || k4.length<8) return [];
+  const n=Math.min(oiH.length, k4.length);
+  const oi=oiH.slice(-n), kk=k4.slice(-n);
+  const ds=[];
+  for(let i=1;i<n;i++){
+    const d=Number(oi[i].sumOpenInterestValue)-Number(oi[i-1].sumOpenInterestValue);
+    if(d>0) ds.push({i:i, d:d});
+  }
+  ds.sort(function(a,b){ return b.d-a.d; });
+  const out=[];
+  ds.slice(0,3).forEach(function(x){
+    const b=kk[x.i];
+    const cost=(Number(b[2])+Number(b[3])+Number(b[4]))/3;
+    const up=Number(b[4])>=Number(b[1]);   // 該時段收漲＝新增主要是多倉；收跌＝新空倉
+    if(side==='short' && !up){ out.push({p:cost*(1+1/50), tag:'空單50x強平'}); out.push({p:cost*(1+1/25), tag:'空單25x強平'}); }
+    if(side==='long' && up){ out.push({p:cost*(1-1/50), tag:'多單50x強平'}); out.push({p:cost*(1-1/25), tag:'多單25x強平'}); }
+  });
+  return out;
+}
+function entryEngine(side, entry, k1h, k4h, oiH){
+  const cands=[];
+  function add(p, src, wt){
+    if(!(p>0)) return;
+    const off=(p/entry-1)*(side==='short'?1:-1);
+    if(off<0.004 || off>0.12) return;      // 只收正確一側、距現價 0.4%~12% 的候選
+    cands.push({p:p, src:src, wt:wt||1});
+  }
+  if(k1h && k1h.length>=25){
+    const c1=k1h.map(function(b){return Number(b[4]);});
+    const b1=bollCalc(c1,20,2), i1=c1.length-1;
+    add(side==='short'?b1.up[i1]:b1.lo[i1], '1h布林'+(side==='short'?'上':'下')+'軌', 1);
+    add(b1.mid[i1], '1h布林中軌', 0.9);   // 反彈到中軌＝左側標準錨；add 會自動過濾錯誤側
+  }
+  if(k4h && k4h.length>=25){
+    const c4=k4h.map(function(b){return Number(b[4]);});
+    const b4=bollCalc(c4,20,2), i4=c4.length-1;
+    add(side==='short'?b4.up[i4]:b4.lo[i4], '4h布林'+(side==='short'?'上':'下')+'軌', 1.1);
+    add(b4.mid[i4], '4h布林中軌', 0.9);
+  }
+  if(k1h && k1h.length>=48){
+    const w=k1h.slice(-48);
+    add(side==='short'?Math.max.apply(null,w.map(function(b){return Number(b[2]);}))*0.997
+                      :Math.min.apply(null,w.map(function(b){return Number(b[3]);}))*1.003, '2日前'+(side==='short'?'高':'低'), 1);
+  }
+  oiCostMagnets(oiH, k4h, entry, side).forEach(function(m){ add(m.p, m.tag, 1.2); });
+  add(hvnNear(volumeProfile(k1h,50), entry, side), '高量密集區', 1);
+  if(!cands.length) return null;
+  cands.sort(function(a,b){ return a.p-b.p; });
+  const bands=[];
+  cands.forEach(function(cd){
+    const b=bands[bands.length-1];
+    if(b && Math.abs(cd.p/b.hi-1)<0.008){ b.hi=cd.p; b.score+=cd.wt; b.srcs.push(cd.src); }
+    else bands.push({lo:cd.p, hi:cd.p, score:cd.wt, srcs:[cd.src]});
+  });
+  bands.forEach(function(b){ b.mid=(b.lo+b.hi)/2; });
+  bands.sort(function(a,b){ return (b.score-a.score) || (Math.abs(a.mid-entry)-Math.abs(b.mid-entry)); });
+  return {best:bands[0], bands:bands.slice(0,3)};
+}
+
+/* ---------------- 多週期指標表＋診斷 ---------------- */
+function tfBias(k){
+  if(!k || k.length<30) return null;
+  const closes=k.map(function(b){return Number(b[4]);});
+  const rsi=rsiWilder(closes,14);
+  const m=macdCalc(closes);
+  const h=m.hist.filter(function(v){return v!==null;});
+  const hCur=h.length?h[h.length-1]:0, hPrev=h.length>1?h[h.length-2]:0;
+  const bl=bollCalc(closes,20,2);
+  const pb=pctBOf(closes,bl,closes.length-1);
+  let vote=0;
+  if(rsi!==null){ if(rsi>55)vote++; else if(rsi<45)vote--; }
+  if(hCur>0)vote++; else if(hCur<0)vote--;
+  if(pb!==null){ if(pb>0.55)vote++; else if(pb<0.45)vote--; }
+  return {rsi:rsi, hCur:hCur, hPrev:hPrev, pctB:pb, vote:vote};
+}
+async function runDiag(){
+  const s=document.getElementById('diagSym').value.trim().toUpperCase();
+  const out=document.getElementById('diagOut');
+  if(!s){ out.innerHTML='<div class="warn">先輸入幣種，例：BTC。</div>'; return; }
+  out.innerHTML='<span class="dim">診斷中…（費率歷史×多週期K線×持倉量，約 3–6 秒）</span>';
+  const S=s+'USDT';
+  const safe=async function(u){ try{const r=await fetch(u); if(r.ok) return await r.json();}catch(e){} try{const r2=await fetch(u); if(r2.ok) return await r2.json();}catch(e){} return null; };
+  const p=await safe(FAPI+'/fapi/v1/premiumIndex?symbol='+S);
+  if(!p || !p.markPrice){ out.innerHTML='<div class="warn">'+s+'：Binance 未上市此永續（Pionex 獨有幣無法診斷），或目前網路限流——再按一次「診斷」。</div>'; return; }
+  const batch1=await Promise.all([
+    safe(FAPI+'/fapi/v1/ticker/24hr?symbol='+S),
+    safe(FAPI+'/fapi/v1/fundingRate?symbol='+S+'&limit=200'),
+    safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=4h&limit=42')
+  ]);
+  const t=batch1[0], fh=batch1[1], oiH=batch1[2];
+  const batch2=await Promise.all([
+    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=15m&limit=96'),
+    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1h&limit=200'),
+    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=4h&limit=168'),
+    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=35')
+  ]);
+  const mark=Number(p.markPrice), frNow=Number(p.lastFundingRate)*100;
+  const chg24=t?Number(t.priceChangePercent):null;
+  let html='<div class="out" style="margin-top:0"><b>'+s+'</b>｜現價 <b>'+px(mark)+'</b>｜當期資金費 <b class="'+(frNow>0?'r':(frNow<0?'g':'dim'))+'">'+fmt(frNow,4)+'%</b>'
+    +(t?'｜24h <b class="'+(chg24>=0?'g':'r')+'">'+fmt(chg24,2)+'%</b>｜量 '+fmt(Number(t.quoteVolume)/1e6,1)+'M':'')+'</div>';
+  /* 多週期表 */
+  const tfs=[['15m',batch2[0]],['1h',batch2[1]],['4h',batch2[2]],['1d',batch2[3]]];
+  html+='<div class="sect">多週期指標（RSI／MACD 柱／布林 %B）</div><table><thead><tr><th>週期</th><th>RSI</th><th>MACD柱</th><th>%B</th><th>傾向</th></tr></thead><tbody>';
+  tfs.forEach(function(tf){
+    const b=tfBias(tf[1]);
+    if(!b){ html+='<tr><td>'+tf[0]+'</td><td colspan="4" class="dim">數據不足</td></tr>'; return; }
+    const rsiCls=b.rsi===null?'dim':(b.rsi>=70?'r':(b.rsi<=30?'g':'dim'));
+    const mTxt=(b.hCur>=0?'＋':'−')+(Math.abs(b.hCur)>=Math.abs(b.hPrev)?'放大':'收斂');
+    const pbTxt=b.pctB===null?'—':fmt(b.pctB,2)+(b.pctB>1?'⤒':(b.pctB<0?'⤓':''));
+    const bias=b.vote>=2?'<span class="g">偏多</span>':(b.vote<=-2?'<span class="r">偏空</span>':'<span class="dim">中性</span>');
+    html+='<tr><td>'+tf[0]+'</td><td class="'+rsiCls+'">'+(b.rsi===null?'—':fmt(b.rsi,0))+'</td><td class="'+(b.hCur>=0?'g':'r')+'">'+mTxt+'</td><td>'+pbTxt+'</td><td>'+bias+'</td></tr>';
+  });
+  html+='</tbody></table><div class="hint" style="margin-top:4px">%B＝價格在布林帶內的位置（0=下軌、1=上軌，⤒/⤓=已出帶外）。多週期同向＝訊號較硬；互相打架＝觀望。</div>';
+  /* 莊家意圖 */
+  const F=mmFeatures(fh, batch2[3], oiH, chg24);
+  const V=mmEngine(F);
+  html+='<div class="sect">莊家意圖判讀</div>'
+    +'<div class="out" style="margin-top:4px"><b class="'+V.cls+'" style="font-size:15px">'+V.icon+' '+V.name+'</b><div style="margin-top:6px;font-size:13px;line-height:1.8">'+V.story+'</div></div>'
+    +'<div class="why" style="margin-top:8px">'+mmDims(F).map(function(x){return '• '+x;}).join('<br>')+'</div>'
+    +'<div class="sect">對左側進場者的行動</div>'
+    +'<div class="why">'+V.actions.map(function(a){return '• '+a;}).join('<br>')+'</div>'
+    +(F.missing.length?'<div class="hint">缺數據：'+F.missing.join('、')+'（新上市幣常見，判讀已自動降級）。</div>':'')
+    +'<div class="row" style="margin-top:10px"><button class="btn ghost" data-plan="short">開做空計畫卡</button><button class="btn ghost" data-plan="long">開做多計畫卡</button></div>'
+    +'<div class="hint" style="margin-top:8px">情境判讀＝把「費率×價格×OI×量能」對到已知的莊家劇本，是機率參考不是預言。判讀與你的計畫衝突時，縮倉位、別擴倉位。</div>';
+  out.dataset.sym=s;
+  out.innerHTML=html;
+}
+function gotoDiag(sym){
+  closePlan();
+  const btns=document.querySelectorAll('.tabs button');
+  if(btns[1]) showTab(1, btns[1]);
+  document.getElementById('diagSym').value=sym;
+  runDiag();
 }
 
 /* ---------------- 計算器 ---------------- */
@@ -719,6 +1126,15 @@ function planFromInput(){
   document.getElementById('planBody').addEventListener('click', function(e){
     const b = e.target.closest('.iv');
     if (b && b.dataset.iv) chartLoad(b.dataset.iv, b);
+    const g = e.target.closest('[data-godiag]');
+    if (g) gotoDiag(g.dataset.godiag);
+  });
+  document.getElementById('btnDiag').addEventListener('click', runDiag);
+  document.getElementById('diagSym').addEventListener('keydown', function(e){ if (e.key==='Enter') runDiag(); });
+  document.getElementById('diagOut').addEventListener('click', function(e){
+    const b = e.target.closest('[data-plan]');
+    const host = document.getElementById('diagOut');
+    if (b && host.dataset.sym) openPlan(host.dataset.sym, b.dataset.plan);
   });
   document.getElementById('btnLookup').addEventListener('click', lookup);
   document.getElementById('btnPlanInput').addEventListener('click', planFromInput);
