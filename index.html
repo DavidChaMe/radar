@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v1.9</span></h1>
+  <h1>合約風控雷達 <span class="badge">v2.0</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -199,7 +199,7 @@
   </div>
 </div>
 
-<div class="foot">v1.9｜資金費雷達＋莊家意圖診斷＋交易計畫卡（決策摘要＝進場/停損/停利/倉位，細節收合；進場點＝布林×結構×OI成本清算帶×量分布共識）＋即時強平流＋風控計算器｜數據源 fapi.binance.com（公開端點）｜下單前到 Pionex 核對</div>
+<div class="foot">v2.0｜資金費雷達＋莊家意圖診斷＋交易計畫卡（決策摘要＋細節收合；進場點＝布林×結構×OI成本清算帶×量分布共識）＋即時強平流＋風控計算器｜數據源：Binance＋OKX（跨所費率）＋CoinGecko（市值）＋Pionex 上市清單（內嵌）｜Coinglass／CMC 一鍵跳轉｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -210,6 +210,11 @@
 
 <script>
 const FAPI = 'https://fapi.binance.com';
+const OKX = 'https://www.okx.com';
+/* Pionex 永續清單（2026-07-06 抓取，共 555 檔）——改版時重抓更新 */
+const PIONEX=new Set('0G,1INCH,2Z,4,A,AAOIX,AAPLX,AAVE,AAX,ACE,ACH,ACT,ACU,ADA,AERO,AEVO,AGLD,AGT,AIA,AIGENSYN,AIN,AIO,AIXBT,AKE,AKT,ALABX,ALCH,ALGO,ALL,ALLO,ALT,AMATX,AMDX,AMZNX,ANIME,ANTHROPIC,APE,API3,APPX,APR,APT,AR,ARB,ARC,ARIA,ARKM,ARMX,ARPA,ARX,ASMLX,ASTER,ASTR,ASTSX,AT,ATH,ATOM,AUCTION,AVAX,AVGOX,AVNT,AWE,AXL,AXS,AXTIX,AZTEC,B,BABY,BAN,BANANA,BANANAS31,BAND,BANK,BARD,BAS,BASED,BAT,BB,BCH,BEAMX,BEAT,BEL,BERA,BEX,BICO,BILL,BIO,BIRB,BLEND,BLESS,BLUAI,BLUR,BMNRX,BNB,BNOX,BOME,BONK,BR,BRENTOIL,BRETT,BREV,BROCCOLI,BSB,BSV,BTC,BTR,BTW,BULLA,C98,CAKE,CAP,CARX,CATI,CBRS,CC,CEGX,CETUS,CF,CFG,CFX,CHIP,CHZ,CIFRX,CKB,CLANKER,CLO,COAI,COHRX,COINX,COLLECT,COMP,COOKIE,COPPER,COTI,CPERX,CRCLX,CRDOX,CRO,CROSS,CRV,CRWVX,CSCOX,CTR,CVX,CVXX,CYS,DASH,DATA,DELLX,DODO,DOGE,DOGS,DOLO,DOT,DRAMX,DRIFT,DUSK,DYM,EDEN,EDGE,EDU,EGLD,EIGEN,ELSA,ENA,ENJ,ENS,ENSO,ESP,ETC,ETH,ETHFI,EUL,EVAA,EWJX,EWYX,FARTCOIN,FET,FF,FHE,FIGHT,FIL,FLNCX,FLOCK,FLOKI,FLUID,FOGO,FOLKS,FRAX,FUTUX,GALA,GAS,GENIUS,GEVX,GIGGLE,GLWX,GMEX,GMT,GMX,GOAT,GOOGLX,GPS,GRAM,GRASS,GRIFFAIN,GRT,GSGX,GUA,GUN,GWEI,H,HAEDAL,HANA,HBAR,HEMI,HFT,HIMSX,HMSTR,HOLO,HOME,HOODX,HPEX,HUMA,HYPE,HYUNDAI,IBMX,ICNT,ICP,IDOL,IMX,IN,INFQX,INIT,INJ,INTCX,INX,IO,IOST,IOTA,IRENX,IRYS,JASMY,JELLYJELLY,JTO,JUP,KAIA,KAITO,KAS,KAT,KAVA,KERNEL,KGEN,KITE,KLACX,KMNO,KNC,KORUX,LA,LAB,LAYER,LDO,LIGHT,LINEA,LINK,LISTA,LIT,LITEX,LLYX,LMTX,LNGX,LPT,LRC,LRCXX,LSK,LTC,LUNA2,LUNC,LYN,MAGIC,MAGMA,MANA,MANTA,MANTRA,MASK,MAV,ME,MEGA,MELANIA,MEME,MERL,MET,METAX,METIS,MEW,MITO,MMT,MNT,MON,MOODENG,MOSX,MOVE,MOVR,MPX,MRVLX,MSFTX,MSTRX,MUBARAK,MUX,MYX,NAORIS,NATGAS,NBISX,NEAR,NEIRO,NEO,NFLXX,NIGHT,NIL,NKEX,NMR,NOKX,NOM,NOT,NOWX,NTRX,NVDAX,NXPC,O,OFC,OG,OGN,OKB,OKLOX,ON,ONDO,ONDSX,ONG,ONT,ONX,OP,OPEN,OPENAI,OPG,OPN,ORCA,ORCLX,ORDER,ORDI,PARTI,PAXG,PAYPX,PENDLE,PENGU,PEOPLE,PEPE,PHA,PI,PIEVERSE,PIPPIN,PIXEL,PLAY,PLTRX,PLUME,PNUT,POL,POLYX,POPCAT,PORTAL,POWER,POWR,PRL,PROMPT,PROS,PROVE,PTB,PUMP,PYTH,Q,QCOMX,QNT,QNTX,QQQX,QTUM,RARE,RATS,RAVE,RAY,RE,RECALL,RENDER,RESOLV,REZ,RGTIX,RIF,RIVER,RKLBX,ROBO,ROSE,RSR,RTXX,RUNE,S,SAGA,SAHARA,SAND,SAPIEN,SCRT,SEI,SENT,SFP,SHELL,SHIB,SIREN,SITMX,SKHX,SKL,SKR,SKY,SKYAI,SLP,SLVX,SLX,SMCIX,SMHX,SMSN,SNDKX,SNX,SOL,SOLV,SOMI,SOON,SOPH,SOXLX,SOXXX,SPACE,SPCX,SPELL,SPK,SPORTFUN,SPX,SPYX,SQD,SSV,STABLE,STAR,STBL,STG,STO,STORJ,STRK,STX,STXX,SUI,SUN,SUPER,SUSHI,SWARMS,SXT,SYRUP,TA,TAC,TAKE,TAO,THE,THETA,TIA,TLM,TNSR,TOSHI,TOWNS,TQQQX,TRADOOR,TRB,TREE,TRIA,TRUMP,TRUST,TRUTH,TRX,TSLAX,TSMX,TST,TTEX,TURBO,TURTLE,TUT,TWT,TXNX,UAI,UB,UNGX,UNHX,UNI,UP,URAX,URNMX,US,USARX,USDC,USELESS,USOX,USTC,USUAL,VANRY,VELODROME,VET,VGKX,VIRTUAL,VSHX,VVV,W,WAL,WCT,WDCX,WIF,WLD,WLFI,WOO,WTI,XAG,XAI,XAN,XAU,XAUT,XEC,XLM,XMR,XNY,XPD,XPIN,XPL,XPT,XRP,XTZ,XVG,XYZX,YB,YFI,YGG,ZAMA,ZBT,ZEC,ZEN,ZEREBRO,ZEST,ZETA,ZIL,ZKC,ZKP,ZKSYNC,ZORA,ZRO,ZRX,币安人生,龙虾,我踏马来了'.split(','));
+function baseOf(sym){ return sym.replace(/^(1000000|1000|1M)/,''); }   // 幣安倍數合約前綴（1000PEPE→PEPE）
+function okxInst(sym){ return baseOf(sym)+'-USDT-SWAP'; }
 let radarRows = [];
 let dir = 'short';
 let plan = null;   // {sym, side, entry, stop, tp15, tp2}
@@ -670,6 +675,7 @@ async function openPlan(sym, side){
       + (liqBad
           ? '<div class="warn">⚠ 強平（'+px(liq)+'）會比停損先到——槓桿降到 <b>'+fmt(Math.max(1,Math.floor(maxLev*10)/10),1)+'x 以下</b>再開。</div>'
           : '<div class="ok">強平 '+px(liq)+' 在停損之外，結構安全。停損單要真的掛上去。</div>')
+      + (!(PIONEX.has(baseOf(sym))||PIONEX.has(sym))?'<div class="warn">⚠ Pionex 未上市此幣——你的帳戶下不了這單，僅供觀察。</div>':'')
       + '<div class="why" style="margin:8px 0 0;font-size:12.5px">• 點位依據：'+pbSrcs+(engMode ? (eng.best.srcs.length>=2?'（多源互證）':'<span class="amber">（單一來源——倉位打對折）</span>') : '')
       + '<br>• '+fee+(firstWarn?'<br>• '+firstWarn:'')+'</div>'
       + '<div id="mmLine" style="margin-top:8px"><span class="dim" style="font-size:12.5px">莊家意圖判讀中…</span></div>'
@@ -691,6 +697,8 @@ async function openPlan(sym, side){
       + '<div id="mmBox"><span class="dim" style="font-size:12.5px">判讀中…（費率歷史×日K×OI）</span></div>'
       +'<div class="sect">強平梯子（燃料在哪裡）</div>'
       + ladder
+      +'<div class="sect">跨所與外部連結</div>'
+      + '<div id="xsBox"><span class="dim" style="font-size:12.5px">載入中…（OKX 費率×市值）</span></div>'
       + '<div class="hint" style="margin-top:10px">此卡由規則自動生成：它回答「為什麼、怎麼做」，不保證「這一單會贏」。十筆虧四五筆是常態。停損不是建議，是這張卡成立的前提。下單前到 Pionex 核對。</div>'
       +'</details>';
 
@@ -723,6 +731,26 @@ async function openPlan(sym, side){
         if (ml) ml.innerHTML = '<div class="out" style="margin-top:0;padding:9px 12px"><b class="'+V.cls+'" style="font-size:13.5px">'+V.icon+' '+V.name+'</b><div class="dim" style="font-size:12px;margin-top:3px;line-height:1.6">'+V.actions[0]+'</div></div>';
         if (mb) mb.innerHTML = '<div class="out" style="margin-top:0"><b class="'+V.cls+'">'+V.icon+' '+V.name+'</b><div class="dim" style="margin-top:4px;font-size:12.5px;line-height:1.7">'+V.story+'</div></div>'
           +'<div class="row" style="margin-top:8px"><button class="btn ghost" data-godiag="'+sym+'" style="font-size:12.5px;padding:7px 12px">完整診斷（多週期指標＋行動建議）→</button></div>';
+      }
+      const okxFr2 = await safe(OKX+'/api/v5/public/funding-rate?instId='+okxInst(sym));
+      const cgS2 = await safe('https://api.coingecko.com/api/v3/search?query='+encodeURIComponent(baseOf(sym)));
+      const xb = document.getElementById('xsBox');
+      if (xb){
+        const symB=baseOf(sym);
+        const okxR=(okxFr2&&okxFr2.data&&okxFr2.data.length)?Number(okxFr2.data[0].fundingRate)*100:null;
+        let mc=null;
+        if (cgS2 && cgS2.coins && cgS2.coins.length){
+          const h2=cgS2.coins.find(function(c){return (c.symbol||'').toUpperCase()===symB;})||cgS2.coins[0];
+          if (h2) mc={rank:h2.market_cap_rank, name:h2.name, id:h2.id};
+        }
+        xb.innerHTML = '<div class="lvl"><span class="dim">費率對照（幣安／OKX）</span><b>'+fmt(fr,4)+'%／'+(okxR===null?'OKX 未上市':fmt(okxR,4)+'%')+'</b></div>'
+          +(okxR!==null&&Math.abs(fr-okxR)>0.03?'<div class="hint" style="margin:2px 0 0;color:#f0b90b">兩所費率分歧——擁擠度不對稱，收租訊號打折。</div>':'')
+          +(mc?'<div class="lvl"><span class="dim">市值排名（CoinGecko）</span><b>#'+(mc.rank||'?')+'（'+mc.name+'）</b></div>':'')
+          +'<div class="lvl"><span class="dim">Pionex</span><b>'+(PIONEX.has(symB)||PIONEX.has(sym)?'✓ 可交易':'✗ 未上市')+'</b></div>'
+          +'<div class="row" style="margin-top:8px">'
+          +'<a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://www.coinglass.com/currencies/'+encodeURIComponent(symB)+'">Coinglass ↗</a>'
+          +(mc&&mc.id?'<a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://www.coingecko.com/en/coins/'+mc.id+'">CoinGecko ↗</a><a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://coinmarketcap.com/currencies/'+mc.id+'/">CMC ↗</a>':'')
+          +'</div>';
       }
     })();
   }catch(e){
@@ -992,9 +1020,25 @@ async function runDiag(){
   const batch1=await Promise.all([
     safe(FAPI+'/fapi/v1/ticker/24hr?symbol='+S),
     safe(FAPI+'/fapi/v1/fundingRate?symbol='+S+'&limit=200'),
-    safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=4h&limit=42')
+    safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=4h&limit=42'),
+    safe(OKX+'/api/v5/public/funding-rate?instId='+okxInst(s)),
+    safe('https://api.coingecko.com/api/v3/search?query='+encodeURIComponent(baseOf(s)))
   ]);
-  const t=batch1[0], fh=batch1[1], oiH=batch1[2];
+  const t=batch1[0], fh=batch1[1], oiH=batch1[2], okxFr=batch1[3], cgS=batch1[4];
+  const sb=baseOf(s);
+  const okxRate=(okxFr&&okxFr.data&&okxFr.data.length)?Number(okxFr.data[0].fundingRate)*100:null;
+  let mcap=null;
+  if (cgS && cgS.coins && cgS.coins.length){
+    const hit=cgS.coins.find(function(c){return (c.symbol||'').toUpperCase()===sb;})||cgS.coins[0];
+    if (hit) mcap={rank:hit.market_cap_rank, name:hit.name, id:hit.id};
+  }
+  if (!mcap){   // CoinGecko 限流時退 CoinPaprika
+    const pap=await safe('https://api.coinpaprika.com/v1/search?q='+encodeURIComponent(sb)+'&c=currencies&limit=5');
+    if (pap && pap.currencies && pap.currencies.length){
+      const h2=pap.currencies.find(function(c){return (c.symbol||'').toUpperCase()===sb;})||pap.currencies[0];
+      if (h2) mcap={rank:h2.rank, name:h2.name, id:null};
+    }
+  }
   const batch2=await Promise.all([
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=15m&limit=96'),
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1h&limit=200'),
@@ -1003,8 +1047,17 @@ async function runDiag(){
   ]);
   const mark=Number(p.markPrice), frNow=Number(p.lastFundingRate)*100;
   const chg24=t?Number(t.priceChangePercent):null;
-  let html='<div class="out" style="margin-top:0"><b>'+s+'</b>｜現價 <b>'+px(mark)+'</b>｜當期資金費 <b class="'+(frNow>0?'r':(frNow<0?'g':'dim'))+'">'+fmt(frNow,4)+'%</b>'
+  let html='<div class="out" style="margin-top:0"><b>'+s+'</b>'+(PIONEX.has(sb)||PIONEX.has(s)?'<span class="badge">Pionex ✓</span>':'<span class="badge" style="background:rgba(246,70,93,.15);color:var(--red)">Pionex 未上</span>')+'｜現價 <b>'+px(mark)+'</b>｜當期資金費 <b class="'+(frNow>0?'r':(frNow<0?'g':'dim'))+'">'+fmt(frNow,4)+'%</b>'
     +(t?'｜24h <b class="'+(chg24>=0?'g':'r')+'">'+fmt(chg24,2)+'%</b>｜量 '+fmt(Number(t.quoteVolume)/1e6,1)+'M':'')+'</div>';
+  /* 跨所費率＋市值＋外部連結 */
+  const frDiv=(okxRate!==null && Math.abs(frNow-okxRate)>0.03);
+  html+='<div class="out" style="margin-top:8px;font-size:13px">跨所費率：幣安 <b class="'+(frNow>0?'r':(frNow<0?'g':'dim'))+'">'+fmt(frNow,4)+'%</b>／OKX <b class="'+(okxRate===null?'dim':(okxRate>0?'r':(okxRate<0?'g':'dim')))+'">'+(okxRate===null?'未上市':fmt(okxRate,4)+'%')+'</b>'
+    +(frDiv?'<span class="amber">（兩所分歧——擁擠度不對稱，訊號打折）</span>':'')
+    +(mcap?'｜市值 <b>#'+(mcap.rank||'?')+'</b>（'+mcap.name+'）':'')
+    +'<div class="row" style="margin-top:8px">'
+    +'<a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://www.coinglass.com/currencies/'+encodeURIComponent(sb)+'">Coinglass ↗</a>'
+    +(mcap&&mcap.id?'<a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://www.coingecko.com/en/coins/'+mcap.id+'">CoinGecko ↗</a><a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://coinmarketcap.com/currencies/'+mcap.id+'/">CMC ↗</a>':'')
+    +'</div></div>';
   /* 多週期表 */
   const tfs=[['15m',batch2[0]],['1h',batch2[1]],['4h',batch2[2]],['1d',batch2[3]]];
   html+='<div class="sect">多週期指標（RSI／MACD 柱／布林 %B）</div><table><thead><tr><th>週期</th><th>RSI</th><th>MACD柱</th><th>%B</th><th>傾向</th></tr></thead><tbody>';
