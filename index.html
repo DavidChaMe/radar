@@ -67,13 +67,18 @@
   .iv{padding:6px 12px !important;font-size:12.5px !important}
   .iv.on{color:var(--amber) !important;border-color:var(--amber) !important}
   canvas{display:block;width:100%;height:230px;background:var(--card2);border-radius:10px}
+  details.adv{margin-top:12px;border-top:1px solid var(--line)}
+  details.adv summary{color:var(--dim);font-size:13px;font-weight:600;padding:10px 0;cursor:pointer;list-style:none;-webkit-user-select:none}
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary::before{content:'▸ '}
+  details.adv[open] summary::before{content:'▾ '}
   .indi{color:var(--dim);font-size:12.5px;line-height:1.8;margin-top:6px}
   #liqFeed div{border-bottom:1px solid var(--line);padding:4px 0}
 </style>
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v1.8</span></h1>
+  <h1>合約風控雷達 <span class="badge">v1.9</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -194,7 +199,7 @@
   </div>
 </div>
 
-<div class="foot">v1.8｜資金費雷達＋莊家意圖診斷（費率歷史×價格×OI×量能情境判讀＋多週期布林/RSI/MACD）＋交易計畫卡（進場點＝1h/4h布林×結構前高低×OI建倉成本清算帶×成交量分布聚類共識，K線+布林帶+成交量、大戶持倉、強平梯子）＋即時強平流＋風控計算器｜數據源 fapi.binance.com（公開端點）｜Pionex 上市清單與費率略有不同，下單前核對</div>
+<div class="foot">v1.9｜資金費雷達＋莊家意圖診斷＋交易計畫卡（決策摘要＝進場/停損/停利/倉位，細節收合；進場點＝布林×結構×OI成本清算帶×量分布共識）＋即時強平流＋風控計算器｜數據源 fapi.binance.com（公開端點）｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -368,7 +373,7 @@ function drawChart(canvasId, bars, lv, boll){
   const chK = ch*0.72, volTop = ch*0.76;   // 上 72% K線、下 24% 量能
   let mn = Infinity, mx = -Infinity;
   data.forEach(b=>{ mn=Math.min(mn,Number(b[3])); mx=Math.max(mx,Number(b[2])); });
-  [lv.entry,lv.stop,lv.tp15,lv.tp2,lv.chase,lv.liqFar].forEach(v=>{ if(v>0){ mn=Math.min(mn,v); mx=Math.max(mx,v);} });
+  [lv.entry,lv.stop,lv.tp15].forEach(v=>{ if(v>0){ mn=Math.min(mn,v); mx=Math.max(mx,v);} });
   if (boll){ for(let i=off;i<bars.length;i++){ if(boll.up[i]!==null){ mn=Math.min(mn,boll.lo[i]); mx=Math.max(mx,boll.up[i]); } } }
   const pad=(mx-mn)*0.05||mx*0.01; mn-=pad; mx+=pad;
   const y=v=>chK-(v-mn)/(mx-mn)*chK;
@@ -414,12 +419,9 @@ function drawChart(canvasId, bars, lv, boll){
     ctx.fillText(label+' '+px(v), cw-3, y(v)-3);
     ctx.textAlign='left';
   }
-  line(lv.chase,'#8a94a6','追價');
-  line(lv.liqFar,'#a855f7','共識帶緣');
   line(lv.stop,'#f6465d','停損');
-  line(lv.tp15,'#2ebd85','TP1');
-  line(lv.tp2,'#2ebd85','TP2');
-  line(lv.entry,'#f0b90b','★回撤進場');
+  line(lv.tp15,'#2ebd85','停利');
+  line(lv.entry,'#f0b90b','★進場');
 }
 async function chartLoad(interval, btn){
   if (!plan) return;
@@ -655,35 +657,42 @@ async function openPlan(sym, side){
       +'<canvas id="pcv"></canvas>'
       +'<div class="indi" id="indiBox">計算中…</div>'
       : '<div class="hint">此環境載入不到 K 線（僅影響圖表、結構停損與 RSI/MACD，其餘照常）。</div>';
+    const fee = whys.length ? whys[0] : '';
+    let firstWarn = '';
+    for (let i=1;i<whys.length;i++){ if (whys[i].indexOf('amber')>=0){ firstWarn = whys[i]; break; } }
     body.innerHTML = chartSec
+      /* ---- 決策摘要：只放下單要用的東西 ---- */
+      + '<div class="lvl"><span class="dim">★進場（掛限價等它來）</span><b class="g" style="font-size:16.5px">'+px(pullback)+'</b></div>'
+      + '<div class="lvl"><span class="dim">停損（掛在系統上）</span><b class="r" style="font-size:16.5px">'+px(stop)+'（'+fmt(dist*100,1)+'%）</b></div>'
+      + '<div class="lvl"><span class="dim">停利 TP1（平一半）／TP2</span><b class="g">'+(tp15>0?px(tp15):'—')+'／'+(tp2>0?px(tp2):'—')+'</b></div>'
+      + '<div class="lvl"><span class="dim">名目／數量</span><b>'+fmt(useN,1)+' U／'+px(qty)+'</b></div>'
+      + '<div class="lvl"><span class="dim">槓桿／保證金</span><b>'+lev+'x 逐倉／'+fmt(margin,1)+' U</b></div>'
+      + (liqBad
+          ? '<div class="warn">⚠ 強平（'+px(liq)+'）會比停損先到——槓桿降到 <b>'+fmt(Math.max(1,Math.floor(maxLev*10)/10),1)+'x 以下</b>再開。</div>'
+          : '<div class="ok">強平 '+px(liq)+' 在停損之外，結構安全。停損單要真的掛上去。</div>')
+      + '<div class="why" style="margin:8px 0 0;font-size:12.5px">• 點位依據：'+pbSrcs+(engMode ? (eng.best.srcs.length>=2?'（多源互證）':'<span class="amber">（單一來源——倉位打對折）</span>') : '')
+      + '<br>• '+fee+(firstWarn?'<br>• '+firstWarn:'')+'</div>'
+      + '<div id="mmLine" style="margin-top:8px"><span class="dim" style="font-size:12.5px">莊家意圖判讀中…</span></div>'
+      + '<div id="topWarnBox"></div>'
+      /* ---- 其餘全部收進摺疊區 ---- */
+      +'<details class="adv"><summary>詳細分析（完整理由／進場策略／大戶動向／強平梯子）</summary>'
       +'<div class="sect">為什麼做這一單</div>'
       +'<div class="why">'+whys.map(x=>'• '+x).join('<br>')+'</div>'
-      +'<div class="sect">進場策略（點位＝多來源共識，不是現價投影）</div>'
+      +'<div class="sect">進場策略</div>'
       + '<div class="lvl"><span class="dim">追價進場（動能極強、怕踏空才用）</span><b class="amber">'+px(chaseMid)+'</b></div>'
-      + '<div class="lvl"><span class="dim">★回撤進場（推薦，掛限價等它來）</span><b class="g">'+px(pullback)+'（'+(side==='short'?'上方':'下方')+' '+fmt(pullbackDepth*100,1)+'%）</b></div>'
+      + '<div class="lvl"><span class="dim">★回撤進場（'+(side==='short'?'上方':'下方')+' '+fmt(pullbackDepth*100,1)+'%）</span><b class="g">'+px(pullback)+'</b></div>'
       + '<div class="lvl"><span class="dim">共識帶範圍</span><b>'+(bandNear===bandFar?px(bandNear)+'（單點）':px(bandNear)+' → '+px(bandFar))+'</b></div>'
-      + '<div class="lvl"><span class="dim">點位依據'+(engMode&&eng.best.srcs.length>=2?'（多源互證）':'')+'</span><b style="font-size:12px">'+pbSrcs+'</b></div>'
-      + (engMode&&eng.best.srcs.length<2?'<div class="hint" style="margin:2px 0 0;color:#f0b90b">單一來源、無互相印證——帶的硬度弱：倉位打對折，或等價格接近次候選帶再加。</div>':'')
       + (pbAlts && pbAlts.length ? '<div class="hint" style="margin:4px 0 0">次候選帶：'+pbAlts.map(function(b){return px(b.mid)+'（'+b.srcs.join('/')+'）';}).join('、')+'</div>' : '')
       + (rsi!==null ? '<div class="hint" style="margin:4px 0 0">掛單時機（1h RSI '+fmt(rsi,0)+'）：'+(side==='short' ? (rsi>=60?'已偏熱——價格衝進共識帶的機率高，掛好等掃針':'尚未過熱——可能衝不到帶；等 RSI 升到 60+ 再期待掃針，勿因不耐改追價') : (rsi<=40?'已偏冷——價格殺進共識帶的機率高，掛好等掃針':'未超跌——可能殺不到帶；等 RSI 跌到 40- 再期待掃針，勿因不耐改追價'))+'</div>' : '')
-      + '<div class="hint" style="margin:4px 0 8px">共識帶來源＝1h/4h 布林軌、2日結構前高低、OI 建倉成本反推的 50x/25x 強平磁鐵、成交量高密集區——相距 0.8% 內互相印證才成帶，來源越多帶越硬。以下停損/停利/倉位皆以★回撤點計算。<b>失效：價格收破帶遠緣 '+px(bandFar)+' 仍不反轉＝真突破非掃針 → 取消此單。</b>（清算帶由 OI 增量時段成本推算，是免費數據近似，非 Coinglass 付費逐倉熱圖）</div>'
-      +'<div class="sect">停損停利與倉位</div>'
-      + '<div class="lvl"><span class="dim">停損（'+stopSrc+'，掛在系統上）</span><b class="r">'+px(stop)+'（'+fmt(dist*100,1)+'%距離）</b></div>'
-      + '<div class="lvl"><span class="dim">停利 1（RR 1.5，平一半）</span><b class="g">'+(tp15>0?px(tp15):'—')+'</b></div>'
-      + '<div class="lvl"><span class="dim">停利 2（RR 2，剩餘移動停損）</span><b class="g">'+(tp2>0?px(tp2):'—')+'</b></div>'
-      + '<div class="lvl"><span class="dim">名目上限（權益 '+fmt(eq,0)+'、可虧 '+fmt(riskPct*100,1)+'%）</span><b>'+fmt(useN,1)+' USDT</b></div>'
-      + '<div class="lvl"><span class="dim">數量 / 保證金（建議 '+lev+'x 逐倉）</span><b>'+px(qty)+' / '+fmt(margin,1)+' USDT</b></div>'
-      + '<div class="lvl"><span class="dim">預估強平價（逐倉近似）</span><b>'+px(liq)+'</b></div>'
-      + (liqBad
-          ? '<div class="warn">⚠ '+lev+'x 之下強平會比停損先到——槓桿降到 <b>'+fmt(Math.max(1,Math.floor(maxLev*10)/10),1)+'x 以下</b>再開。</div>'
-          : '<div class="ok">強平價在停損之外，結構安全。停損單要真的掛上去。</div>')
+      + '<div class="hint" style="margin:4px 0 8px">共識帶來源＝1h/4h 布林軌、2日結構前高低、OI 建倉成本反推的 50x/25x 強平磁鐵、成交量高密集區——相距 0.8% 內互相印證才成帶。停損（'+stopSrc+'）、倉位（權益 '+fmt(eq,0)+'、可虧 '+fmt(riskPct*100,1)+'%＋鐵律截斷）皆以★回撤點計算。<b>失效：價格收破帶遠緣 '+px(bandFar)+' 仍不反轉＝真突破非掃針 → 取消此單。</b>（清算帶為免費數據近似，非 Coinglass 付費逐倉熱圖）</div>'
       +'<div class="sect">大戶動向（巨鯨代理數據）</div>'
       + '<div id="whaleBox"><span class="dim" style="font-size:12.5px">大戶數據載入中…</span></div>'
-      +'<div class="sect">莊家意圖判讀</div>'
+      +'<div class="sect">莊家意圖完整劇本</div>'
       + '<div id="mmBox"><span class="dim" style="font-size:12.5px">判讀中…（費率歷史×日K×OI）</span></div>'
       +'<div class="sect">強平梯子（燃料在哪裡）</div>'
       + ladder
-      + '<div class="hint" style="margin-top:10px">此卡由規則自動生成：它回答「為什麼、怎麼做」，不保證「這一單會贏」。十筆虧四五筆是常態——系統的利潤來自停損小虧＋停利大賺的長期重複。停損不是建議，是這張卡成立的前提。下單前到 Pionex 核對。</div>';
+      + '<div class="hint" style="margin-top:10px">此卡由規則自動生成：它回答「為什麼、怎麼做」，不保證「這一單會贏」。十筆虧四五筆是常態。停損不是建議，是這張卡成立的前提。下單前到 Pionex 核對。</div>'
+      +'</details>';
 
     if (hasK){
       chartLoad('1h', null);
@@ -696,15 +705,23 @@ async function openPlan(sym, side){
       const taker  = await safe(FAPI+'/futures/data/takerlongshortRatio?symbol='+S+'&period=1h&limit=25');
       const oi     = await safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=1h&limit=25');
       const wb = document.getElementById('whaleBox');
-      if (wb) wb.innerHTML = buildWhale(topPos, glob, taker, oi);
+      if (wb){
+        wb.innerHTML = buildWhale(topPos, glob, taker, oi);
+        if (wb.innerHTML.indexOf('class="warn"') >= 0){
+          const tw = document.getElementById('topWarnBox');
+          if (tw) tw.innerHTML = '<div class="warn">⚠ 大戶持倉與此單對作——規模減半或觀望（展開下方詳細分析看數據）。</div>';
+        }
+      }
       const fh2  = await safe(FAPI+'/fapi/v1/fundingRate?symbol='+S+'&limit=200');
       const kd2  = await safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=35');
       const oiH2 = await safe(FAPI+'/futures/data/openInterestHist?symbol='+S+'&period=4h&limit=42');
       const mb = document.getElementById('mmBox');
-      if (mb){
+      const ml = document.getElementById('mmLine');
+      if (mb || ml){
         const F = mmFeatures(fh2, kd2, oiH2, chg);
         const V = mmEngine(F);
-        mb.innerHTML = '<div class="out" style="margin-top:0"><b class="'+V.cls+'">'+V.icon+' '+V.name+'</b><div class="dim" style="margin-top:4px;font-size:12.5px;line-height:1.7">'+V.story+'</div></div>'
+        if (ml) ml.innerHTML = '<div class="out" style="margin-top:0;padding:9px 12px"><b class="'+V.cls+'" style="font-size:13.5px">'+V.icon+' '+V.name+'</b><div class="dim" style="font-size:12px;margin-top:3px;line-height:1.6">'+V.actions[0]+'</div></div>';
+        if (mb) mb.innerHTML = '<div class="out" style="margin-top:0"><b class="'+V.cls+'">'+V.icon+' '+V.name+'</b><div class="dim" style="margin-top:4px;font-size:12.5px;line-height:1.7">'+V.story+'</div></div>'
           +'<div class="row" style="margin-top:8px"><button class="btn ghost" data-godiag="'+sym+'" style="font-size:12.5px;padding:7px 12px">完整診斷（多週期指標＋行動建議）→</button></div>';
       }
     })();
