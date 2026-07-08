@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v2.0</span></h1>
+  <h1>合約風控雷達 <span class="badge">v2.1</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -122,13 +122,13 @@
 <!-- ================= 診斷 ================= -->
 <div class="page" id="pg-diag">
   <div class="card">
-    <h2>莊家意圖診斷｜這一單是機會還是陷阱</h2>
-    <div class="hint">用「歷史資金費 × 價格走勢 × 持倉量 OI × 成交量」推演大戶在做什麼：收租陰跌、派發陰漲、真軋空、投降反轉、還是健康趨勢。這是<b>情境判讀，不是預測</b>——它告訴你現在進場是在跟莊家對作還是順風，以及左側進場該等哪個訊號。</div>
+    <h2>進場五開關｜這單能不能做、在哪接、接多少</h2>
+    <div class="hint">策略＝<b>軋空燃料耗盡做空法</b>：暴拉的垃圾幣，等空軍被爆完，在最遠清算價外 10–30% 掛空。五開關就是你的 SOP——紅燈＝不做，黃燈＝預掛等到價，全過＝可執行。莊家意圖、多週期、跨所數據都收在下方摺疊。</div>
     <div class="row">
-      <input id="diagSym" placeholder="例：BTC、SIREN、OGN" style="flex:1;text-transform:uppercase">
+      <input id="diagSym" placeholder="例：SIREN、HMSTR、OGN" style="flex:1;text-transform:uppercase">
       <button class="btn" id="btnDiag">診斷</button>
     </div>
-    <div id="diagOut" style="margin-top:12px"><span class="dim" style="font-size:13px">輸入幣種按「診斷」：多週期指標表（15m/1h/4h/1d 的 RSI／MACD／布林%B）＋莊家意圖情境判讀＋左側進場者的具體行動建議，適合的話一鍵開完整計畫卡。</span></div>
+    <div id="diagOut" style="margin-top:12px"><span class="dim" style="font-size:13px">輸入幣種按「診斷」：①標的資格 ②暴拉確認 ③費率租金 ④清算極限掛單區 ⑤衰竭訊號——通過才給掛單區與倉位數字；細節（莊家意圖／多週期／跨所）全部收折。</span></div>
   </div>
 </div>
 
@@ -167,8 +167,15 @@
 <!-- ================= 規則 ================= -->
 <div class="page" id="pg-rules">
   <div class="card">
+    <h2>策略主軸｜軋空燃料耗盡做空法（2026-07-08 定版）</h2>
+    <div class="rule">進場五開關（診斷頁）：①垃圾幣＋Pionex 有上 ②7日 +80% 暴拉 ③日化費率 &gt; -0.3%（租不貴） ④掛單區＝空軍最遠爆倉價外 +10～30% ⑤衰竭訊號至少一項（插針／量動價滯／拉不動）。紅燈＝不做，換下一檔。</div>
+    <div class="rule">倉位：第一批名目＝權益 2%，分 2–3 批，單標的 ≤5%；賺了才放大（權益 +25% → 單位名目 +25%），虧損月不放大。槓桿只是保證金效率，<b>風險＝名目</b>。</div>
+    <div class="rule">出場：跌 30% 平⅓、跌 50% 平⅓、跌 70% 清空——不等歸零；停損＝進場 +18% 名目；掛單後每 4h 重估清算帶，極限上移穿區＝論點死，提前撤／平。</div>
+    <div class="rule red">這套的死法＝真需求行情（量價齊動 band walking）。開關⑤就是防這個：價量齊動不逆做，寧可錯過。</div>
+  </div>
+  <div class="card">
     <h2>鐵律（違反任何一條＝當天停止交易）</h2>
-    <div class="rule">1｜單筆名目 ≤ 權益 5%；同方向名目總額 ≤ 權益 30%。所有迷因幣空單視為同一注。</div>
+    <div class="rule">1｜單筆標的名目 ≤ 權益 5%（第一批 2% 起）；同方向名目總額 ≤ 權益 150%（1.5×）。所有迷因幣空單視為同一注。</div>
     <div class="rule">2｜每張單的停損掛在系統上。「心裡知道要跑」在凌晨的插針裡不算數。</div>
     <div class="rule red">3｜絕不為被軋的空單補保證金。補保證金救倉位是這個打法唯一的死法。</div>
     <div class="rule">4｜自家空單的資金費轉深負＝全市場擠空、軋空預警 → 減倉，不是加倉。</div>
@@ -199,7 +206,7 @@
   </div>
 </div>
 
-<div class="foot">v2.0｜資金費雷達＋莊家意圖診斷＋交易計畫卡（決策摘要＋細節收合；進場點＝布林×結構×OI成本清算帶×量分布共識）＋即時強平流＋風控計算器｜數據源：Binance＋OKX（跨所費率）＋CoinGecko（市值）＋Pionex 上市清單（內嵌）｜Coinglass／CMC 一鍵跳轉｜下單前到 Pionex 核對</div>
+<div class="foot">v2.1｜進場五開關（軋空燃料耗盡做空法：標的×暴拉×費率租金×清算極限掛單區×衰竭）＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 上市清單（內嵌）｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -211,8 +218,8 @@
 <script>
 const FAPI = 'https://fapi.binance.com';
 const OKX = 'https://www.okx.com';
-/* Pionex 永續清單（2026-07-06 抓取，共 555 檔）——改版時重抓更新 */
-const PIONEX=new Set('0G,1INCH,2Z,4,A,AAOIX,AAPLX,AAVE,AAX,ACE,ACH,ACT,ACU,ADA,AERO,AEVO,AGLD,AGT,AIA,AIGENSYN,AIN,AIO,AIXBT,AKE,AKT,ALABX,ALCH,ALGO,ALL,ALLO,ALT,AMATX,AMDX,AMZNX,ANIME,ANTHROPIC,APE,API3,APPX,APR,APT,AR,ARB,ARC,ARIA,ARKM,ARMX,ARPA,ARX,ASMLX,ASTER,ASTR,ASTSX,AT,ATH,ATOM,AUCTION,AVAX,AVGOX,AVNT,AWE,AXL,AXS,AXTIX,AZTEC,B,BABY,BAN,BANANA,BANANAS31,BAND,BANK,BARD,BAS,BASED,BAT,BB,BCH,BEAMX,BEAT,BEL,BERA,BEX,BICO,BILL,BIO,BIRB,BLEND,BLESS,BLUAI,BLUR,BMNRX,BNB,BNOX,BOME,BONK,BR,BRENTOIL,BRETT,BREV,BROCCOLI,BSB,BSV,BTC,BTR,BTW,BULLA,C98,CAKE,CAP,CARX,CATI,CBRS,CC,CEGX,CETUS,CF,CFG,CFX,CHIP,CHZ,CIFRX,CKB,CLANKER,CLO,COAI,COHRX,COINX,COLLECT,COMP,COOKIE,COPPER,COTI,CPERX,CRCLX,CRDOX,CRO,CROSS,CRV,CRWVX,CSCOX,CTR,CVX,CVXX,CYS,DASH,DATA,DELLX,DODO,DOGE,DOGS,DOLO,DOT,DRAMX,DRIFT,DUSK,DYM,EDEN,EDGE,EDU,EGLD,EIGEN,ELSA,ENA,ENJ,ENS,ENSO,ESP,ETC,ETH,ETHFI,EUL,EVAA,EWJX,EWYX,FARTCOIN,FET,FF,FHE,FIGHT,FIL,FLNCX,FLOCK,FLOKI,FLUID,FOGO,FOLKS,FRAX,FUTUX,GALA,GAS,GENIUS,GEVX,GIGGLE,GLWX,GMEX,GMT,GMX,GOAT,GOOGLX,GPS,GRAM,GRASS,GRIFFAIN,GRT,GSGX,GUA,GUN,GWEI,H,HAEDAL,HANA,HBAR,HEMI,HFT,HIMSX,HMSTR,HOLO,HOME,HOODX,HPEX,HUMA,HYPE,HYUNDAI,IBMX,ICNT,ICP,IDOL,IMX,IN,INFQX,INIT,INJ,INTCX,INX,IO,IOST,IOTA,IRENX,IRYS,JASMY,JELLYJELLY,JTO,JUP,KAIA,KAITO,KAS,KAT,KAVA,KERNEL,KGEN,KITE,KLACX,KMNO,KNC,KORUX,LA,LAB,LAYER,LDO,LIGHT,LINEA,LINK,LISTA,LIT,LITEX,LLYX,LMTX,LNGX,LPT,LRC,LRCXX,LSK,LTC,LUNA2,LUNC,LYN,MAGIC,MAGMA,MANA,MANTA,MANTRA,MASK,MAV,ME,MEGA,MELANIA,MEME,MERL,MET,METAX,METIS,MEW,MITO,MMT,MNT,MON,MOODENG,MOSX,MOVE,MOVR,MPX,MRVLX,MSFTX,MSTRX,MUBARAK,MUX,MYX,NAORIS,NATGAS,NBISX,NEAR,NEIRO,NEO,NFLXX,NIGHT,NIL,NKEX,NMR,NOKX,NOM,NOT,NOWX,NTRX,NVDAX,NXPC,O,OFC,OG,OGN,OKB,OKLOX,ON,ONDO,ONDSX,ONG,ONT,ONX,OP,OPEN,OPENAI,OPG,OPN,ORCA,ORCLX,ORDER,ORDI,PARTI,PAXG,PAYPX,PENDLE,PENGU,PEOPLE,PEPE,PHA,PI,PIEVERSE,PIPPIN,PIXEL,PLAY,PLTRX,PLUME,PNUT,POL,POLYX,POPCAT,PORTAL,POWER,POWR,PRL,PROMPT,PROS,PROVE,PTB,PUMP,PYTH,Q,QCOMX,QNT,QNTX,QQQX,QTUM,RARE,RATS,RAVE,RAY,RE,RECALL,RENDER,RESOLV,REZ,RGTIX,RIF,RIVER,RKLBX,ROBO,ROSE,RSR,RTXX,RUNE,S,SAGA,SAHARA,SAND,SAPIEN,SCRT,SEI,SENT,SFP,SHELL,SHIB,SIREN,SITMX,SKHX,SKL,SKR,SKY,SKYAI,SLP,SLVX,SLX,SMCIX,SMHX,SMSN,SNDKX,SNX,SOL,SOLV,SOMI,SOON,SOPH,SOXLX,SOXXX,SPACE,SPCX,SPELL,SPK,SPORTFUN,SPX,SPYX,SQD,SSV,STABLE,STAR,STBL,STG,STO,STORJ,STRK,STX,STXX,SUI,SUN,SUPER,SUSHI,SWARMS,SXT,SYRUP,TA,TAC,TAKE,TAO,THE,THETA,TIA,TLM,TNSR,TOSHI,TOWNS,TQQQX,TRADOOR,TRB,TREE,TRIA,TRUMP,TRUST,TRUTH,TRX,TSLAX,TSMX,TST,TTEX,TURBO,TURTLE,TUT,TWT,TXNX,UAI,UB,UNGX,UNHX,UNI,UP,URAX,URNMX,US,USARX,USDC,USELESS,USOX,USTC,USUAL,VANRY,VELODROME,VET,VGKX,VIRTUAL,VSHX,VVV,W,WAL,WCT,WDCX,WIF,WLD,WLFI,WOO,WTI,XAG,XAI,XAN,XAU,XAUT,XEC,XLM,XMR,XNY,XPD,XPIN,XPL,XPT,XRP,XTZ,XVG,XYZX,YB,YFI,YGG,ZAMA,ZBT,ZEC,ZEN,ZEREBRO,ZEST,ZETA,ZIL,ZKC,ZKP,ZKSYNC,ZORA,ZRO,ZRX,币安人生,龙虾,我踏马来了'.split(','));
+/* Pionex 永續清單（2026-07-08 抓取，共 556 檔）——改版時重抓更新 */
+const PIONEX=new Set('0G,1INCH,2Z,4,A,AAOIX,AAPLX,AAVE,AAX,ACE,ACH,ACT,ACU,ADA,AERO,AEVO,AGLD,AGT,AIA,AIGENSYN,AIN,AIO,AIXBT,AKE,AKT,ALABX,ALCH,ALGO,ALL,ALLO,ALT,AMATX,AMDX,AMZNX,ANIME,ANTHROPIC,APE,API3,APPX,APR,APT,AR,ARB,ARC,ARIA,ARKM,ARMX,ARPA,ARX,ASMLX,ASTER,ASTR,ASTSX,AT,ATH,ATOM,AUCTION,AVAX,AVGOX,AVNT,AWE,AXL,AXS,AXTIX,AZTEC,B,BABY,BAN,BANANA,BANANAS31,BAND,BANK,BARD,BAS,BASED,BAT,BB,BCH,BEAMX,BEAT,BEL,BERA,BEX,BICO,BILL,BIO,BIRB,BLEND,BLESS,BLUAI,BLUR,BMNRX,BNB,BNOX,BOME,BONK,BR,BRENTOIL,BRETT,BREV,BROCCOLI,BSB,BSV,BTC,BTR,BTW,BULLA,C98,CAKE,CAP,CARX,CATI,CBRS,CC,CEGX,CETUS,CF,CFG,CFX,CHIP,CHZ,CIFRX,CKB,CLANKER,CLO,COAI,COHRX,COINX,COLLECT,COMP,COOKIE,COPPER,COTI,CPERX,CRCLX,CRDOX,CRO,CROSS,CRV,CRWVX,CSCOX,CTR,CVX,CVXX,CYS,DASH,DATA,DELLX,DODO,DOGE,DOGS,DOLO,DOT,DRAMX,DRIFT,DUSK,DYM,EDEN,EDGE,EDU,EGLD,EIGEN,ELSA,ENA,ENJ,ENS,ENSO,ESP,ETC,ETH,ETHFI,EUL,EVAA,EWJX,EWYX,FARTCOIN,FET,FF,FHE,FIGHT,FIL,FLNCX,FLOCK,FLOKI,FLUID,FOGO,FOLKS,FRAX,FUTUX,GALA,GAS,GENIUS,GEVX,GIGGLE,GLWX,GMEX,GMT,GMX,GOAT,GOOGLX,GPS,GRAM,GRASS,GRIFFAIN,GRT,GSGX,GUA,GUN,GWEI,H,HAEDAL,HANA,HBAR,HEMI,HFT,HIMSX,HMSTR,HOLO,HOME,HOODX,HPEX,HUMA,HYPE,HYUNDAI,IBMX,ICNT,ICP,IDOL,IMX,IN,INFQX,INIT,INJ,INTCX,INX,IO,IOST,IOTA,IRENX,IRYS,JASMY,JELLYJELLY,JTO,JUP,KAIA,KAITO,KAS,KAT,KAVA,KERNEL,KGEN,KITE,KLACX,KMNO,KNC,KORUX,LA,LAB,LAYER,LDO,LIGHT,LINEA,LINK,LISTA,LIT,LITEX,LLYX,LMTX,LNGX,LPT,LRC,LRCXX,LSK,LTC,LUNA2,LUNC,LYN,MAGIC,MAGMA,MANA,MANTA,MANTRA,MASK,MAV,ME,MEGA,MELANIA,MEME,MERL,MET,METAX,METIS,MEW,MITO,MMT,MNT,MON,MOODENG,MOSX,MOVE,MOVR,MPX,MRVLX,MSFTX,MSTRX,MUBARAK,MUX,MYX,NAORIS,NATGAS,NBISX,NEAR,NEIRO,NEO,NFLXX,NIGHT,NIL,NKEX,NMR,NOKX,NOM,NOT,NOWX,NTRX,NVDAX,NXPC,O,OFC,OG,OGN,OKB,OKLOX,ON,ONDO,ONDSX,ONG,ONT,ONX,OP,OPEN,OPENAI,OPG,OPN,ORCA,ORCLX,ORDER,ORDI,PARTI,PAXG,PAYPX,PENDLE,PENGU,PEOPLE,PEPE,PHA,PI,PIEVERSE,PIPPIN,PIXEL,PLAY,PLTRX,PLUME,PNUT,POL,POLYX,POPCAT,PORTAL,POWER,POWR,PRL,PROMPT,PROS,PROVE,PTB,PUMP,PYTH,Q,QCOMX,QNT,QNTX,QQQX,QTUM,RARE,RATS,RAVE,RAY,RE,RECALL,RENDER,RESOLV,REZ,RGTIX,RIF,RIVER,RKLBX,ROBO,ROSE,RSR,RTXX,RUNE,S,SAGA,SAHARA,SAND,SAPIEN,SCRT,SEI,SENT,SFP,SHELL,SHIB,SIREN,SITMX,SKHX,SKL,SKR,SKY,SKYAI,SLP,SLVX,SLX,SMCIX,SMHX,SMSN,SNDKX,SNX,SOL,SOLV,SOMI,SOON,SOPH,SOXLX,SOXXX,SPACE,SPCX,SPELL,SPK,SPORTFUN,SPX,SPYX,SQD,SSV,STABLE,STAR,STBL,STG,STO,STORJ,STRK,STX,STXX,SUI,SUN,SUPER,SUSHI,SWARMS,SXT,SYRUP,TA,TAC,TAKE,TAO,THE,THETA,TIA,TLM,TNSR,TOSHI,TOWNS,TQQQX,TRADOOR,TRB,TREE,TRIA,TRUMP,TRUST,TRUTH,TRX,TSLAX,TSMX,TST,TTEX,TURBO,TURTLE,TUT,TWT,TXNX,UAI,UB,UNGX,UNHX,UNI,UP,URAX,URNMX,US,USARX,USD,USDC,USELESS,USOX,USTC,USUAL,VANRY,VELODROME,VET,VGKX,VIRTUAL,VSHX,VVV,W,WAL,WCT,WDCX,WIF,WLD,WLFI,WOO,WTI,XAG,XAI,XAN,XAU,XAUT,XEC,XLM,XMR,XNY,XPD,XPIN,XPL,XPT,XRP,XTZ,XVG,XYZX,YB,YFI,YGG,ZAMA,ZBT,ZEC,ZEN,ZEREBRO,ZEST,ZETA,ZIL,ZKC,ZKP,ZKSYNC,ZORA,ZRO,ZRX,币安人生,龙虾,我踏马来了'.split(','));
 function baseOf(sym){ return sym.replace(/^(1000000|1000|1M)/,''); }   // 幣安倍數合約前綴（1000PEPE→PEPE）
 function okxInst(sym){ return baseOf(sym)+'-USDT-SWAP'; }
 let radarRows = [];
@@ -899,6 +906,120 @@ function mmEngine(F){
              '新上市幣缺費率／OI 歷史＝不確定性本身，倉位打折']};
 }
 
+/* ---------------- 進場五開關（v2.1）：軋空燃料耗盡做空法 ---------------- */
+function atrOf(k, n){
+  if(!k || k.length<n+2) return null;
+  const trs=[];
+  for(let i=k.length-n;i<k.length;i++){
+    const h=Number(k[i][2]), l=Number(k[i][3]), pc=Number(k[i-1][4]);
+    trs.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+  }
+  return trs.reduce(function(a,b){return a+b;},0)/trs.length;
+}
+/* 空軍建倉成本 → 最保守(10x)爆倉價＝可見燃料最遠端 → 掛單區＝極限外 +10%~+30% */
+function farLiqZone(oiH, k4){
+  if(!oiH || !k4 || oiH.length<4) return null;
+  const n=Math.min(oiH.length, k4.length);
+  const oi=oiH.slice(-n), kk=k4.slice(-n);
+  const ds=[];
+  for(let i=1;i<n;i++){
+    const d=Number(oi[i].sumOpenInterestValue)-Number(oi[i-1].sumOpenInterestValue);
+    if(d>0) ds.push({i:i, d:d});
+  }
+  ds.sort(function(a,b){ return b.d-a.d; });
+  let cost=null, src='OI空軍建倉成本';
+  ds.slice(0,3).forEach(function(x){
+    const b=kk[x.i];
+    if(Number(b[4])<Number(b[1])){          // 收跌時段＝新增的主要是空倉
+      const c=(Number(b[2])+Number(b[3])+Number(b[4]))/3;
+      if(cost===null || c>cost) cost=c;     // 取最高的空軍成本＝最遠燃料
+    }
+  });
+  if(cost===null){                          // 單邊暴拉沒有收跌增倉段 → 降級錨：28日前高（最早空軍的成本區）
+    if(k4 && k4.length>=30) { cost=Math.max.apply(null, k4.map(function(b){return Number(b[2]);})); src='28日前高（無收跌增倉段，降級錨）'; }
+    else return null;
+  }
+  const far=cost*1.10;
+  return {cost:cost, far:far, lo:far*1.10, hi:far*1.30, src:src};
+}
+function gateFive(ctx){
+  const F=ctx.F, k1d=ctx.k1d, k4=ctx.k4, mark=ctx.mark;
+  const G=[];
+  /* ① 標的資格：垃圾幣＋Pionex 有上 */
+  const pOK=PIONEX.has(ctx.sb)||PIONEX.has(ctx.s);
+  const age=k1d?k1d.length:0;
+  const rank=ctx.mcap?ctx.mcap.rank:null;
+  const junk=(age>0&&age<90)||!rank||rank>150;
+  G.push({name:'標的資格', pass:(pOK&&junk),
+    txt:(age<120?'上市 '+age+' 天':'上市 ≥120 天')+(rank?'｜市值 #'+rank:'｜無市值排名')+'｜Pionex ✓',
+    fail:!pOK?'Pionex 未上市——你的帳戶下不了這單':'成熟主流幣（市值 #'+rank+'、上市 ≥120 天）——盤口深、莊家爆破邏輯弱，不是這套策略的獵物'});
+  /* ② 暴拉確認：沒有暴拉＝沒有被爆的空軍＝沒有戲 */
+  let chg7=null;
+  if(k1d && k1d.length>=8){ const c=k1d.map(function(b){return Number(b[4]);}); chg7=(c[c.length-1]/c[c.length-8]-1)*100; }
+  const pump=(chg7!==null&&chg7>=80)||(F.upFromLow!==undefined&&F.upFromLow>=100);
+  G.push({name:'暴拉確認', pass:pump,
+    txt:(chg7!==null?'7日 '+(chg7>=0?'+':'')+fmt(chg7,0)+'%':'上市未滿 8 天')+(F.upFromLow!==undefined?'｜距35日低點 +'+fmt(F.upFromLow,0)+'%':''),
+    fail:'拉幅不足（門檻：7日 +80% 或距低點 +100%，現在 '+(chg7!==null?fmt(chg7,0)+'%':'—')+'）——沒暴拉就沒有爆破燃料'});
+  /* ③ 費率租金：開空付租太貴＝莊家還想爆更多空軍 */
+  const d0=F.frD?F.frD[0]:null;
+  G.push({name:'費率租金', pass:(d0===null?false:d0>-0.3),
+    txt:'日化 '+(d0===null?'—':fmt(d0,2))+'%/日'+(d0>0.1?'（開空還收租＝主場）':(d0>-0.1?'（中性，租不傷）':'（小付租，可接受）')),
+    fail:(d0===null?'缺費率歷史（新上永續）——租金算不出來，等它有數據':'開空要日付 '+fmt(Math.abs(d0),2)+'% 租＝空軍太擠、莊家還沒爆完——等費率回 ±0.05%/日 再看')});
+  /* ④ 位置：清算極限外 +10~30% 掛單區 */
+  const z=farLiqZone(ctx.oiH, k4);
+  let posPass=false, posTxt='', posFail='';
+  if(!z){ posFail='OI 裡看不到空軍建倉時段，反推不了爆倉極限——沒有錨點就不掛'; }
+  else if(mark>z.hi*1.02){ posFail='現價已越過估算極限區上緣（'+px(z.hi)+'）——燃料已重估上移，這裡接＝接刀'; }
+  else if(mark>=z.lo){ posPass=true; posTxt='已進掛單區 '+px(z.lo)+'～'+px(z.hi)+'（極限 '+px(z.far)+' 外 +10～30%｜錨：'+z.src+'）'; }
+  else { posPass='wait'; posTxt='掛單區 '+px(z.lo)+'～'+px(z.hi)+'，距現價 +'+fmt((z.lo/mark-1)*100,1)+'%（錨：'+z.src+'）——左側預掛，等它拉上來'; }
+  G.push({name:'位置', pass:posPass, txt:posTxt, fail:posFail, zone:z});
+  /* ⑤ 衰竭訊號：插針／量動價滯／拉不動，至少一項 */
+  const hits=[];
+  if(k4 && k4.length>=20){
+    const a=atrOf(k4,14);
+    for(let i=k4.length-3;i<k4.length;i++){
+      const o=Number(k4[i][1]),h=Number(k4[i][2]),l=Number(k4[i][3]),c=Number(k4[i][4]);
+      if(h-l>0 && (h-Math.max(o,c))/(h-l)>=0.55 && a!==null && (h-l)>=1.6*a){ hits.push('長上影插針'); break; }
+    }
+    const c4=k4.map(function(b){return Number(b[4]);});
+    const r4=rsiWilder(c4,14);
+    const m4=macdCalc(c4), hh=m4.hist.filter(function(v){return v!==null;});
+    if(hh.length>=2 && r4!==null && r4>=68 && hh[hh.length-1]>0 && hh[hh.length-1]<hh[hh.length-2]) hits.push('過熱＋MACD收斂（拉不動）');
+  }
+  if(F.volSpike!==undefined && F.c24!==undefined && F.volSpike>=1.5 && Math.abs(F.c24)<5) hits.push('量動價滯（可能到盡頭）');
+  G.push({name:'衰竭訊號', pass:hits.length>0, txt:hits.join('＋'),
+    fail:'沒有衰竭訊號＝還在拉。價量齊動不逆做——等插針／量動價滯／拉不動其中一項'});
+  return G;
+}
+function renderGates(G, V){
+  const icon=function(p){ return p===true?'🟢':(p==='wait'?'🟡':'🔴'); };
+  let html='<div class="sect">進場五開關（做空）</div><div class="out" style="margin-top:4px;font-size:13px;line-height:2">';
+  G.forEach(function(g,i){
+    html+='<div>'+icon(g.pass)+' <b>'+(i+1)+'｜'+g.name+'</b>　'+(g.pass?g.txt:'<span class="r">'+g.fail+'</span>')+'</div>';
+  });
+  html+='<div class="dim" style="font-size:12px;margin-top:2px">'+(V?V.icon+' 莊家判讀：'+V.name:'')+'</div></div>';
+  const hard=G.filter(function(g,i){ return i!==4 && g.pass===false; });
+  const z=G[3].zone;
+  const eq=Number(localStorage.getItem('radar_eq'))||10000;
+  if(hard.length || !z){
+    html+='<div class="out" style="margin-top:8px;border-left:3px solid var(--red)"><b class="r">✋ 不做這單</b><div style="font-size:13px;margin-top:4px;line-height:1.8">'+(hard.length?hard[0].fail:'定位不了掛單區')+'。不符合策略就略過——換下一檔，不硬做。</div></div>';
+    return html;
+  }
+  const est=(z.lo+z.hi)/2, n1=eq*0.02, nMax=eq*0.05;
+  const state = G[3].pass==='wait' ? '<b class="amber">🟡 預掛等到價</b>——到價時回來重按「診斷」看⑤衰竭燈，沒亮就撤單'
+              : (G[4].pass===true ? '<b class="g">🟢 五燈全過——可執行</b>'
+                                  : '<b class="amber">🟠 已在區內但還在拉</b>——等⑤衰竭燈亮再接，別接刀');
+  html+='<div class="out" style="margin-top:8px;border-left:3px solid var(--green)">'+state
+    +'<div style="font-size:14px;margin-top:6px;line-height:2">'
+    +'掛空區 <b>'+px(z.lo)+'～'+px(z.hi)+'</b>（分 2–3 批，第一批掛下緣）<br>'
+    +'第一批名目 <b>'+fmt(n1,0)+'U</b>（權益 2%）｜此標的上限 <b>'+fmt(nMax,0)+'U</b>（5%）<br>'
+    +'停損 <b class="r">'+px(est*1.18)+'</b>（名目 -18% ≈ 權益 -'+fmt(n1*0.18/eq*100,2)+'%）；掛單後每 4h 重估④，極限上移穿區＝提前撤/平<br>'
+    +'停利 <b class="g">'+px(est*0.7)+'</b> 平⅓ → <b class="g">'+px(est*0.5)+'</b> 平⅓ → <b class="g">'+px(est*0.3)+'</b> 清空（吃 70%，不等歸零）<br>'
+    +'<span class="dim" style="font-size:12px">同方向總名目 ≤ '+fmt(eq*1.5,0)+'U（1.5×權益）｜進場 14 天沒跌＋費率轉深負＝撤｜權益（現 '+fmt(eq,0)+'U）在計算器頁更新</span>'
+    +'</div></div>';
+  return html;
+}
+
 /* ---------------- 進場點引擎（v1.8）：點位由真實結構驅動，不是現價投影 ---------------- */
 function volumeProfile(k, bins){
   if(!k || k.length<20) return null;
@@ -1043,12 +1164,20 @@ async function runDiag(){
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=15m&limit=96'),
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1h&limit=200'),
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=4h&limit=168'),
-    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=35')
+    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=120')
   ]);
   const mark=Number(p.markPrice), frNow=Number(p.lastFundingRate)*100;
   const chg24=t?Number(t.priceChangePercent):null;
+  /* 特徵與莊家判讀先算（五開關與收折區共用；mmFeatures 維持 35 日窗口語義） */
+  const F=mmFeatures(fh, batch2[3]?batch2[3].slice(-35):null, oiH, chg24);
+  const V=mmEngine(F);
   let html='<div class="out" style="margin-top:0"><b>'+s+'</b>'+(PIONEX.has(sb)||PIONEX.has(s)?'<span class="badge">Pionex ✓</span>':'<span class="badge" style="background:rgba(246,70,93,.15);color:var(--red)">Pionex 未上</span>')+'｜現價 <b>'+px(mark)+'</b>｜當期資金費 <b class="'+(frNow>0?'r':(frNow<0?'g':'dim'))+'">'+fmt(frNow,4)+'%</b>'
     +(t?'｜24h <b class="'+(chg24>=0?'g':'r')+'">'+fmt(chg24,2)+'%</b>｜量 '+fmt(Number(t.quoteVolume)/1e6,1)+'M':'')+'</div>';
+  /* ===== 第一層：進場五開關＋行動卡 ===== */
+  html+=renderGates(gateFive({s:s, sb:sb, mark:mark, F:F, k1d:batch2[3], k4:batch2[2], oiH:oiH, mcap:mcap}), V);
+  html+='<div class="row" style="margin-top:10px"><button class="btn ghost" data-plan="short">開做空計畫卡</button><button class="btn ghost" data-plan="long">開做多計畫卡</button></div>';
+  /* ===== 第二層：細節全部收折 ===== */
+  html+='<details class="adv"><summary>完整診斷（莊家意圖／多週期指標／跨所數據）</summary>';
   /* 跨所費率＋市值＋外部連結 */
   const frDiv=(okxRate!==null && Math.abs(frNow-okxRate)>0.03);
   html+='<div class="out" style="margin-top:8px;font-size:13px">跨所費率：幣安 <b class="'+(frNow>0?'r':(frNow<0?'g':'dim'))+'">'+fmt(frNow,4)+'%</b>／OKX <b class="'+(okxRate===null?'dim':(okxRate>0?'r':(okxRate<0?'g':'dim')))+'">'+(okxRate===null?'未上市':fmt(okxRate,4)+'%')+'</b>'
@@ -1072,16 +1201,14 @@ async function runDiag(){
   });
   html+='</tbody></table><div class="hint" style="margin-top:4px">%B＝價格在布林帶內的位置（0=下軌、1=上軌，⤒/⤓=已出帶外）。多週期同向＝訊號較硬；互相打架＝觀望。</div>';
   /* 莊家意圖 */
-  const F=mmFeatures(fh, batch2[3], oiH, chg24);
-  const V=mmEngine(F);
   html+='<div class="sect">莊家意圖判讀</div>'
     +'<div class="out" style="margin-top:4px"><b class="'+V.cls+'" style="font-size:15px">'+V.icon+' '+V.name+'</b><div style="margin-top:6px;font-size:13px;line-height:1.8">'+V.story+'</div></div>'
     +'<div class="why" style="margin-top:8px">'+mmDims(F).map(function(x){return '• '+x;}).join('<br>')+'</div>'
     +'<div class="sect">對左側進場者的行動</div>'
     +'<div class="why">'+V.actions.map(function(a){return '• '+a;}).join('<br>')+'</div>'
     +(F.missing.length?'<div class="hint">缺數據：'+F.missing.join('、')+'（新上市幣常見，判讀已自動降級）。</div>':'')
-    +'<div class="row" style="margin-top:10px"><button class="btn ghost" data-plan="short">開做空計畫卡</button><button class="btn ghost" data-plan="long">開做多計畫卡</button></div>'
-    +'<div class="hint" style="margin-top:8px">情境判讀＝把「費率×價格×OI×量能」對到已知的莊家劇本，是機率參考不是預言。判讀與你的計畫衝突時，縮倉位、別擴倉位。</div>';
+    +'<div class="hint" style="margin-top:8px">情境判讀＝把「費率×價格×OI×量能」對到已知的莊家劇本，是機率參考不是預言。判讀與你的計畫衝突時，縮倉位、別擴倉位。</div>'
+    +'</details>';
   out.dataset.sym=s;
   out.innerHTML=html;
 }
