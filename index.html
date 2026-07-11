@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v2.1</span></h1>
+  <h1>合約風控雷達 <span class="badge">v2.2</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -98,6 +98,12 @@
     </div>
     <div class="status" id="radarStatus">載入中…</div>
     <div class="status">按標的沒反應？→ 到「計算器」輸入幣種按「計畫卡」。若連底部分頁都切不動＝你在唯讀預覽裡，請把檔案用 Safari／Chrome 開啟。</div>
+  </div>
+
+  <div class="card">
+    <h2 class="g">暴漲預警｜軋空燃料庫</h2>
+    <div class="hint">空軍日付租 ≥1%/日＝燃料庫堆滿（🔥標記）。回測 500 天：10x 事件裡「事前可見」的訊號幾乎只有這個——MYX 兩次 10x 前空軍日付 2～4%。<b>必要非充分</b>：多數只反彈 30–80%。點列開做多計畫卡。</div>
+    <table><thead><tr><th>幣種</th><th>費率(日化)</th><th>24h</th><th>量(M)</th></tr></thead><tbody id="fuelBody"><tr><td colspan="4" class="dim">掃描中…</td></tr></tbody></table>
   </div>
 
   <div class="card">
@@ -206,7 +212,7 @@
   </div>
 </div>
 
-<div class="foot">v2.1｜進場五開關（軋空燃料耗盡做空法：標的×暴拉×費率租金×清算極限掛單區×衰竭）＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 上市清單（內嵌）｜下單前到 Pionex 核對</div>
+<div class="foot">v2.2｜暴漲預警（軋空燃料庫掃描＋接力型徽章，500天回測校準）＋進場五開關（軋空燃料耗盡做空法）＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 上市清單（內嵌）｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -265,10 +271,50 @@ async function loadRadar(){
       });
     });
     renderRadar();
+    loadFuel(prem, tmap);
     st.textContent = '最後更新：' + new Date().toLocaleString('zh-TW') + '｜通過門檻 ' + radarRows.length + ' 檔';
   }catch(e){
     st.textContent = '連線失敗（網路或瀏覽器限制）。手機請用 Safari／Chrome 開啟。';
   }
+}
+/* v2.2 暴漲預警：極端深負費率＝軋空燃料庫（粗篩後逐檔精算日化，自動適配 8h/4h/1h 結算制） */
+async function loadFuel(prem, tmap){
+  const box = document.getElementById('fuelBody');
+  if (!box) return;
+  try{
+    let c = [];
+    prem.forEach(function(p){
+      if (!p.symbol.endsWith('USDT') || p.symbol.includes('_')) return;
+      const fr = Number(p.lastFundingRate)*100;
+      if (fr > -0.15) return;
+      const t = tmap[p.symbol]; if (!t) return;
+      const qv = Number(t.quoteVolume); if (!(qv >= 3000000)) return;
+      c.push({sym:p.symbol.replace(/USDT$/,''), S:p.symbol, fr:fr, chg:Number(t.priceChangePercent), volM:qv/1e6});
+    });
+    c.sort(function(a,b){ return a.fr-b.fr; });
+    c = c.slice(0,8);
+    if (!c.length){ box.innerHTML='<tr><td colspan="4" class="dim">目前沒有極端擁擠的空單——警報安靜是常態，這個訊號一年只響幾次，響的時候別錯過。</td></tr>'; return; }
+    for (let i=0;i<c.length;i++){
+      const x=c[i];
+      x.daily=null;
+      try{
+        const fh=await fetch(FAPI+'/fapi/v1/fundingRate?symbol='+x.S+'&limit=6').then(function(r){ if(!r.ok) throw 0; return r.json(); });
+        if (fh && fh.length>=2){
+          const iv=(Number(fh[fh.length-1].fundingTime)-Number(fh[0].fundingTime))/(fh.length-1)/3600000;
+          let s=0; fh.forEach(function(f){ s+=Number(f.fundingRate)*100; });
+          x.daily=(s/fh.length)*(24/Math.max(1,iv));
+        }
+      }catch(e){}
+    }
+    c.sort(function(a,b){ return (a.daily===null?a.fr:a.daily)-(b.daily===null?b.fr:b.daily); });
+    box.innerHTML=c.map(function(x){
+      const alarm=(x.daily!==null && x.daily<=-1);
+      return '<tr class="click" data-sym="'+x.sym+'" data-side="long"><td>'+x.sym+(alarm?'<span class="badge" style="background:rgba(46,189,133,.18);color:var(--green)">🔥燃料庫</span>':'')+'</td>'
+        +'<td class="g">'+(x.daily===null?fmt(x.fr,3)+'%/期':fmt(x.daily,2)+'%/日')+'</td>'
+        +'<td class="'+(x.chg>=0?'g':'r')+'">'+fmt(x.chg,2)+'%</td>'
+        +'<td class="dim">'+fmt(x.volM,1)+'</td></tr>';
+    }).join('');
+  }catch(e){ box.innerHTML='<tr><td colspan="4" class="dim">載入失敗——重按「重新掃描」。</td></tr>'; }
 }
 function rowHtml(x, badge, side){
   const frCls = x.fr < 0 ? 'g' : (x.fr > 0 ? 'r' : 'dim');
@@ -1175,6 +1221,10 @@ async function runDiag(){
     +(t?'｜24h <b class="'+(chg24>=0?'g':'r')+'">'+fmt(chg24,2)+'%</b>｜量 '+fmt(Number(t.quoteVolume)/1e6,1)+'M':'')+'</div>';
   /* ===== 第一層：進場五開關＋行動卡 ===== */
   html+=renderGates(gateFive({s:s, sb:sb, mark:mark, F:F, k1d:batch2[3], k4:batch2[2], oiH:oiH, mcap:mcap}), V);
+  /* v2.2 接力型徽章：爆過且回檔中＝第二波暴拉候補（歷史 10x 有 ¼ 是接力） */
+  if (F.chg30!==undefined && F.chg30>=80 && F.offHigh!==undefined && F.offHigh<=-15 && F.offHigh>=-65){
+    html+='<div class="out" style="margin-top:8px;font-size:12.5px;border-left:3px solid var(--amber)"><b class="amber">⚡ 接力型候補</b>　30d +'+fmt(F.chg30,0)+'%、距35日高點 '+fmt(F.offHigh,0)+'%——爆過且回檔未死。回測 500 天：10x 事件有 ¼ 是「第一波後的第二波」。做多仍要費率深負或轉強確認，倉位＝多單規則再減半；對空單則意味著頂點可能還沒出現。</div>';
+  }
   html+='<div class="row" style="margin-top:10px"><button class="btn ghost" data-plan="short">開做空計畫卡</button><button class="btn ghost" data-plan="long">開做多計畫卡</button></div>';
   /* ===== 第二層：細節全部收折 ===== */
   html+='<details class="adv"><summary>完整診斷（莊家意圖／多週期指標／跨所數據）</summary>';
@@ -1317,6 +1367,7 @@ function planFromInput(){
   document.getElementById('strict').addEventListener('change', renderRadar);
   document.getElementById('longBody').addEventListener('click', radarClick);
   document.getElementById('shortBody').addEventListener('click', radarClick);
+  document.getElementById('fuelBody').addEventListener('click', radarClick);
   const pm = document.getElementById('planModal');
   pm.addEventListener('click', function(e){ if (e.target === pm) closePlan(); });
   document.getElementById('btnClose').addEventListener('click', closePlan);
