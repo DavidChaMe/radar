@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v2.4</span></h1>
+  <h1>合約風控雷達 <span class="badge">v2.5</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -146,7 +146,7 @@
       <input id="diagSym" placeholder="例：SIREN、HMSTR、OGN" style="flex:1;text-transform:uppercase">
       <button class="btn" id="btnDiag">診斷</button>
     </div>
-    <div id="diagOut" style="margin-top:12px"><span class="dim" style="font-size:13px">輸入幣種按「診斷」：①標的資格 ②暴拉確認 ③費率租金 ④清算極限掛單區 ⑤衰竭訊號——通過才給掛單區與倉位數字；細節（莊家意圖／多週期／跨所）全部收折。</span></div>
+    <div id="diagOut" style="margin-top:12px"><span class="dim" style="font-size:13px">輸入幣種按「診斷」：①標的資格 ②暴拉確認 ③費率租金 ④清算極限掛單區（含距現價檢查） ⑤衰竭訊號——通過才給掛單區與倉位數字；細節（莊家意圖／多週期／跨所）全部收折。</span></div>
   </div>
 </div>
 
@@ -186,7 +186,8 @@
 <div class="page" id="pg-rules">
   <div class="card">
     <h2>策略主軸｜軋空燃料耗盡做空法（2026-07-08 定版）</h2>
-    <div class="rule">進場五開關（診斷頁）：①垃圾幣＋Pionex 有上 ②7日 +80% 暴拉 ③日化費率 &gt; -0.3%（租不貴） ④掛單區＝空軍最遠爆倉價外 +10～30% ⑤衰竭訊號至少一項（插針／量動價滯／拉不動）。紅燈＝不做，換下一檔。</div>
+    <div class="rule">進場五開關（診斷頁）：①垃圾幣＋Pionex 有上 ②7日 +80% 暴拉 ③日化費率 &gt; -0.3%（租不貴） ④掛單區＝空軍最遠爆倉價外 +10～30%，<b>且距現價 ≤25%</b>（超過改掛現價 +10～15%） ⑤衰竭訊號至少一項（插針／量動價滯／拉不動）。紅燈＝不做，換下一檔。</div>
+    <div class="rule"><b>掛單距離（v2.5 新增，409 訊號決策時點回測）</b>：把名目調成「每筆固定冒 1% 權益」後比較，緩衝 +10%／+20%／+30% 的成交率是 74%／55%／42%，但每筆均報酬 2.79%／2.27%／2.75%＝<b>掛遠沒讓報酬變好，只是少成交</b>；而且掛越遠，成交的越偏向「還在噴的」＝逆選擇。同份資料另一佐證：7日 +80~120% 的訊號每筆賺 4.7%，+120~200% 掉到 1.87%、≥200% 只剩 1.83%——<b>暴拉越猛，做空越差</b>。⚠️ 提醒：報酬要先做風險校正才能比，第一版沒校正時「放寬停損到 30%」看起來最好，校正後掉到中段（它只是多冒 67% 的險）。<span class="dim">未計資金費／滑價／手續費；全表 t 值 1.2~2.1＝方向可信、幅度不精確。</span></div>
     <div class="rule">倉位：第一批名目＝權益 2%，分 2–3 批，單標的 ≤5%；賺了才放大（權益 +25% → 單位名目 +25%），虧損月不放大。槓桿只是保證金效率，<b>風險＝名目</b>。</div>
     <div class="rule">出場：跌 30% 平⅓、跌 50% 平⅓、跌 70% 清空——不等歸零；停損＝進場 +18% 名目；掛單後每 4h 重估清算帶，極限上移穿區＝論點死，提前撤／平。</div>
     <div class="rule red">這套的死法＝真需求行情（量價齊動 band walking）。開關⑤就是防這個：價量齊動不逆做，寧可錯過。</div>
@@ -224,7 +225,7 @@
   </div>
 </div>
 
-<div class="foot">v2.4｜點火偵測（死寂→爆量抬價，637 事件回測校準）＋山寨季溫度計（breadth 配段）＋暴漲預警（燃料庫＋接力）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
+<div class="foot">v2.5｜掛單距離校準（409 訊號決策時點回測：掛遠只少成交、不多賺）＋點火偵測（死寂→爆量抬價，637 事件回測校準）＋山寨季溫度計（breadth 配段）＋暴漲預警（燃料庫＋接力）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -1138,13 +1139,30 @@ function gateFive(ctx){
   G.push({name:'費率租金', pass:(d0===null?false:d0>-0.3),
     txt:'日化 '+(d0===null?'—':fmt(d0,2))+'%/日'+(d0>0.1?'（開空還收租＝主場）':(d0>-0.1?'（中性，租不傷）':'（小付租，可接受）')),
     fail:(d0===null?'缺費率歷史（新上永續）——租金算不出來，等它有數據':'開空要日付 '+fmt(Math.abs(d0),2)+'% 租＝空軍太擠、莊家還沒爆完——等費率回 ±0.05%/日 再看')});
-  /* ④ 位置：清算極限外 +10~30% 掛單區 */
+  /* ④ 位置：清算極限外掛單區
+     v2.5（409 訊號決策時點回測校準）：新增「距現價」檢查。回測把名目調成每筆固定冒 1% 權益後，
+     緩衝 +10%/+20%/+30% 的成交率是 74%/55%/42%，但每筆均報酬是 2.79%/2.27%/2.75%（平的）——
+     掛遠沒換到更好的報酬，只是少成交，且成交的偏向「還在噴的」＝逆選擇。故遠掛要標示並給近端替代價。 */
   const z=farLiqZone(ctx.oiH, k4);
   let posPass=false, posTxt='', posFail='';
   if(!z){ posFail='OI 裡看不到空軍建倉時段，反推不了爆倉極限——沒有錨點就不掛'; }
   else if(mark>z.hi*1.02){ posFail='現價已越過估算極限區上緣（'+px(z.hi)+'）——燃料已重估上移，這裡接＝接刀'; }
   else if(mark>=z.lo){ posPass=true; posTxt='已進掛單區 '+px(z.lo)+'～'+px(z.hi)+'（極限 '+px(z.far)+' 外 +10～30%｜錨：'+z.src+'）'; }
-  else { posPass='wait'; posTxt='掛單區 '+px(z.lo)+'～'+px(z.hi)+'，距現價 +'+fmt((z.lo/mark-1)*100,1)+'%（錨：'+z.src+'）——左側預掛，等它拉上來'; }
+  else {
+    const dist=(z.lo/mark-1)*100;
+    z.dist=dist; z.nearLo=mark*1.10; z.nearHi=mark*1.15; z.tooFar=(dist>25);
+    posPass='wait';
+    if(z.tooFar){
+      posTxt='⚠️ 掛單區 '+px(z.lo)+'～'+px(z.hi)+'，距現價 <b class="amber">+'+fmt(dist,1)+'%＝掛太遠</b>（錨：'+z.src+'）'
+        +'<div class="dim" style="font-size:12px;line-height:1.7;margin:2px 0 2px 22px">回測 409 訊號：緩衝 +10%／+20%／+30% 的成交率 74%／55%／42%，'
+        +'而每筆均報酬 2.79%／2.27%／2.75%＝<b>掛遠沒讓報酬變好，只是少成交</b>；且掛越遠，成交的越偏向「還在噴的」＝逆選擇。'
+        +'另一佐證：7日 +80~120% 的訊號每筆賺 4.7%，+120~200% 只剩 1.87%。</div>'
+        +'<b>建議改掛 '+px(z.nearLo)+'～'+px(z.nearHi)+'（現價 +10～15%）</b>，或等價格拉近再掛。';
+    } else {
+      posTxt='掛單區 '+px(z.lo)+'～'+px(z.hi)+'，距現價 +'+fmt(dist,1)+'%（錨：'+z.src+'）——左側預掛，等它拉上來'
+        +(dist>15?'<span class="dim">｜距現價 >15%，回測成交率約 5 成</span>':'<span class="dim">｜≤15%＝回測最佳區間，成交率約 7 成</span>');
+    }
+  }
   G.push({name:'位置', pass:posPass, txt:posTxt, fail:posFail, zone:z});
   /* ⑤ 衰竭訊號：插針／量動價滯／拉不動，至少一項 */
   const hits=[];
@@ -1178,13 +1196,18 @@ function renderGates(G, V){
     html+='<div class="out" style="margin-top:8px;border-left:3px solid var(--red)"><b class="r">✋ 不做這單</b><div style="font-size:13px;margin-top:4px;line-height:1.8">'+(hard.length?hard[0].fail:'定位不了掛單區')+'。不符合策略就略過——換下一檔，不硬做。</div></div>';
     return html;
   }
-  const est=(z.lo+z.hi)/2, n1=eq*0.02, nMax=eq*0.05;
+  /* v2.5：清算錨算出來的區距現價 >25% 時，改用近端建議價（+10~15%）當執行區。
+     依據＝409 訊號回測：掛遠不會讓每筆報酬變好，只會少成交＋逆選擇。清算錨仍完整顯示供對照。 */
+  const useNear = (z.tooFar===true);
+  const zLo = useNear ? z.nearLo : z.lo, zHi = useNear ? z.nearHi : z.hi;
+  const est=(zLo+zHi)/2, n1=eq*0.02, nMax=eq*0.05;
   const state = G[3].pass==='wait' ? '<b class="amber">🟡 預掛等到價</b>——到價時回來重按「診斷」看⑤衰竭燈，沒亮就撤單'
               : (G[4].pass===true ? '<b class="g">🟢 五燈全過——可執行</b>'
                                   : '<b class="amber">🟠 已在區內但還在拉</b>——等⑤衰竭燈亮再接，別接刀');
   html+='<div class="out" style="margin-top:8px;border-left:3px solid var(--green)">'+state
     +'<div style="font-size:14px;margin-top:6px;line-height:2">'
-    +'掛空區 <b>'+px(z.lo)+'～'+px(z.hi)+'</b>（分 2–3 批，第一批掛下緣）<br>'
+    +'掛空區 <b>'+px(zLo)+'～'+px(zHi)+'</b>（分 2–3 批，第一批掛下緣）'
+    +(useNear?'<br><span class="amber" style="font-size:12px">↑ 已改用近端價（現價 +10～15%）：清算錨區 '+px(z.lo)+'～'+px(z.hi)+' 距現價 +'+fmt(z.dist,1)+'%，回測顯示那麼遠只會少成交、不會賺更多</span>':'')+'<br>'
     +'第一批名目 <b>'+fmt(n1,0)+'U</b>（權益 2%）｜此標的上限 <b>'+fmt(nMax,0)+'U</b>（5%）<br>'
     +'停損 <b class="r">'+px(est*1.18)+'</b>（名目 -18% ≈ 權益 -'+fmt(n1*0.18/eq*100,2)+'%）；掛單後每 4h 重估④，極限上移穿區＝提前撤/平<br>'
     +'停利 <b class="g">'+px(est*0.7)+'</b> 平⅓ → <b class="g">'+px(est*0.5)+'</b> 平⅓ → <b class="g">'+px(est*0.3)+'</b> 清空（吃 70%，不等歸零）<br>'
