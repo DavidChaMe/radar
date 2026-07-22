@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v2.5</span></h1>
+  <h1>合約風控雷達 <span class="badge">v2.5.1</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -108,7 +108,7 @@
 
   <div class="card">
     <h2 class="g">暴漲預警｜軋空燃料庫</h2>
-    <div class="hint">空軍日付租 ≥1%/日＝燃料庫堆滿（🔥標記）。回測 500 天：10x 事件裡「事前可見」的訊號幾乎只有這個——MYX 兩次 10x 前空軍日付 2～4%。<b>必要非充分</b>：多數只反彈 30–80%。點列開做多計畫卡。</div>
+    <div class="hint">空軍日付租 <b>≥4%/日</b>＝🔥（門檻 2026-07-22 由 1% 上修，見下）。<b>真實分布（364 事件回測，母體＝日化 ≤-1% 且量 ≥3M）</b>：中位最大反彈只 <b>+12.7%</b>、達 +30% 佔 25.3%、達 +50% 12.9%、達 +100% 8.5%、<b class="r">啞彈（&lt;+10%）佔 42%</b>、中位最大逆行 <b class="r">-24.2%</b>。<br><b>為什麼把門檻從 1% 拉到 4%</b>：費率深度在 -1%～-4% 之間<b>完全不分級</b>（-1～-2 組達 +50% 13.2%、-2～-4 組只有 9.3%，後者還更差）；<b>≤-4%/日 才是真的線</b>（達 +50% 23.7%、達 +100% <b>18.4%</b>）。舊說法「MYX 兩次 10x 前日付 2～4%＝關鍵訊號」是<b>從贏家裡挑出來的三個案例</b>，不是機率——那一格反而全場最差。<br><span class="dim">誠實界線：≤-4% 這格 n=38、約 2 SE，屬提示級不是定論；且 P(深負費率｜10x) 高 ≠ P(10x｜深負費率) 高。點列開做多計畫卡，但你的多單規則本來就限名目 2.5%。</span></div>
     <table><thead><tr><th>幣種</th><th>費率(日化)</th><th>24h</th><th>量(M)</th></tr></thead><tbody id="fuelBody"><tr><td colspan="4" class="dim">掃描中…</td></tr></tbody></table>
   </div>
 
@@ -225,7 +225,7 @@
   </div>
 </div>
 
-<div class="foot">v2.5｜掛單距離校準（409 訊號決策時點回測：掛遠只少成交、不多賺）＋點火偵測（死寂→爆量抬價，637 事件回測校準）＋山寨季溫度計（breadth 配段）＋暴漲預警（燃料庫＋接力）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
+<div class="foot">v2.5.1｜燃料庫門檻上修 ≤-4%/日＋文案改為真實分布（364 事件）｜v2.5 掛單距離校準（409 訊號決策時點回測：掛遠只少成交、不多賺）＋點火偵測（死寂→爆量抬價，637 事件回測校準）＋山寨季溫度計（breadth 配段）＋暴漲預警（燃料庫＋接力）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -323,8 +323,14 @@ async function loadFuel(prem, tmap){
     }
     c.sort(function(a,b){ return (a.daily===null?a.fr:a.daily)-(b.daily===null?b.fr:b.daily); });
     box.innerHTML=c.map(function(x){
-      const alarm=(x.daily!==null && x.daily<=-1);
-      return '<tr class="click" data-sym="'+x.sym+'" data-side="long"><td>'+x.sym+(alarm?'<span class="badge" style="background:rgba(46,189,133,.18);color:var(--green)">🔥燃料庫</span>':'')+'</td>'
+      /* v2.5.1：🔥 門檻由 ≤-1%/日 上修為 ≤-4%/日。364 事件回測顯示 -1%～-4% 這段完全不分級
+         （-1～-2 組達 +50% 13.2%、-2～-4 組 9.3%），真正有鑑別力的線在 ≤-4%（達 +100% 18.4% vs 全體 8.5%）。
+         -1～-4% 仍列出供參考但不給 🔥，避免弱訊號被當成強訊號。 */
+      const alarm=(x.daily!==null && x.daily<=-4);
+      const mid=(x.daily!==null && x.daily<=-1 && x.daily>-4);
+      return '<tr class="click" data-sym="'+x.sym+'" data-side="long"><td>'+x.sym
+        +(alarm?'<span class="badge" style="background:rgba(46,189,133,.18);color:var(--green)">🔥燃料庫</span>':'')
+        +(mid?'<span class="badge dim" style="font-size:10px">偏弱格</span>':'')+'</td>'
         +'<td class="g">'+(x.daily===null?fmt(x.fr,3)+'%/期':fmt(x.daily,2)+'%/日')+'</td>'
         +'<td class="'+(x.chg>=0?'g':'r')+'">'+fmt(x.chg,2)+'%</td>'
         +'<td class="dim">'+fmt(x.volM,1)+'</td></tr>';
