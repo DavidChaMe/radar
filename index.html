@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v2.5.1</span></h1>
+  <h1>合約風控雷達 <span class="badge">v2.6</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -225,7 +225,7 @@
   </div>
 </div>
 
-<div class="foot">v2.5.1｜燃料庫門檻上修 ≤-4%/日＋文案改為真實分布（364 事件）｜v2.5 掛單距離校準（409 訊號決策時點回測：掛遠只少成交、不多賺）＋點火偵測（死寂→爆量抬價，637 事件回測校準）＋山寨季溫度計（breadth 配段）＋暴漲預警（燃料庫＋接力）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
+<div class="foot">v2.6｜多週期表加入週K（週／日／4H／1H／15m，由長到短）｜v2.5.1 燃料庫門檻上修 ≤-4%/日＋文案改為真實分布（364 事件）｜v2.5 掛單距離校準（409 訊號決策時點回測：掛遠只少成交、不多賺）＋點火偵測（死寂→爆量抬價，637 事件回測校準）＋山寨季溫度計（breadth 配段）＋暴漲預警（燃料庫＋接力）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -1366,7 +1366,8 @@ async function runDiag(){
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=15m&limit=96'),
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1h&limit=200'),
     safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=4h&limit=168'),
-    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=120')
+    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=120'),
+    safe(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1w&limit=60')   /* v2.6：使用者指名要看週K */
   ]);
   const mark=Number(p.markPrice), frNow=Number(p.lastFundingRate)*100;
   const chg24=t?Number(t.priceChangePercent):null;
@@ -1394,7 +1395,8 @@ async function runDiag(){
     +(mcap&&mcap.id?'<a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://www.coingecko.com/en/coins/'+mcap.id+'">CoinGecko ↗</a><a class="btn ghost" style="font-size:12px;padding:6px 10px;text-decoration:none" target="_blank" rel="noopener" href="https://coinmarketcap.com/currencies/'+mcap.id+'/">CMC ↗</a>':'')
     +'</div></div>';
   /* 多週期表 */
-  const tfs=[['15m',batch2[0]],['1h',batch2[1]],['4h',batch2[2]],['1d',batch2[3]]];
+  /* v2.6：加入週K（使用者指名最需要看的五個週期：週/日/4H/1H/15m）。由長到短排，先看大方向再看進場點。 */
+  const tfs=[['週',batch2[4]],['1d',batch2[3]],['4h',batch2[2]],['1h',batch2[1]],['15m',batch2[0]]];
   html+='<div class="sect">多週期指標（RSI／MACD 柱／布林 %B）</div><table><thead><tr><th>週期</th><th>RSI</th><th>MACD柱</th><th>%B</th><th>傾向</th></tr></thead><tbody>';
   tfs.forEach(function(tf){
     const b=tfBias(tf[1]);
