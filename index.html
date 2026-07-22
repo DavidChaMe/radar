@@ -78,7 +78,7 @@
 </head>
 <body>
 <header>
-  <h1>合約風控雷達 <span class="badge">v2.3</span></h1>
+  <h1>合約風控雷達 <span class="badge">v2.4</span></h1>
   <div class="sub">資料：Binance 公開 API＋官方大戶持倉數據（即時、直連、不經第三方）。下單前到 Pionex 核對。本工具不預測行情——它計算你的規則。</div>
 </header>
 
@@ -110,6 +110,12 @@
     <h2 class="g">暴漲預警｜軋空燃料庫</h2>
     <div class="hint">空軍日付租 ≥1%/日＝燃料庫堆滿（🔥標記）。回測 500 天：10x 事件裡「事前可見」的訊號幾乎只有這個——MYX 兩次 10x 前空軍日付 2～4%。<b>必要非充分</b>：多數只反彈 30–80%。點列開做多計畫卡。</div>
     <table><thead><tr><th>幣種</th><th>費率(日化)</th><th>24h</th><th>量(M)</th></tr></thead><tbody id="fuelBody"><tr><td colspan="4" class="dim">掃描中…</td></tr></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2 class="g">點火偵測｜死寂 → 突然爆量抬價</h2>
+    <div class="hint">條件＝清場完成的死寂幣（距120日高 -35%+、7日量 ≤ 峰量15%）突然單日 <b>量 ≥7日均×5 且 +12%</b>。回測 500 天 637 次點火：<b>30 天內翻倍 12.2%</b>（無訊號時 5.5% 的 2.2 倍）、+30% 機率 42%、啞彈 28%。<b>代價：追進後中位途中回撤 -28%</b>——要玩就小倉＋容忍深回踩，或當「未來獵物誕生」通知。</div>
+    <table><thead><tr><th>幣種</th><th>今日</th><th>量能倍數</th><th>距高</th></tr></thead><tbody id="igniteBody"><tr><td colspan="4" class="dim">掃描中…</td></tr></tbody></table>
   </div>
 
   <div class="card">
@@ -218,7 +224,7 @@
   </div>
 </div>
 
-<div class="foot">v2.3｜山寨季溫度計（breadth 抽樣＋行動配段：主場／降檔／減半／空手）＋暴漲預警（軋空燃料庫＋接力徽章）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
+<div class="foot">v2.4｜點火偵測（死寂→爆量抬價，637 事件回測校準）＋山寨季溫度計（breadth 配段）＋暴漲預警（燃料庫＋接力）＋進場五開關＋莊家意圖診斷＋交易計畫卡＋即時強平流＋風控計算器｜數據源：Binance＋OKX＋CoinGecko＋Pionex 清單（內嵌）｜下單前到 Pionex 核對</div>
 
 <div class="tabs">
   <button class="on">雷達</button>
@@ -279,6 +285,7 @@ async function loadRadar(){
     renderRadar();
     loadFuel(prem, tmap);
     loadAltTemp(prem);
+    loadIgnite(prem, tmap);
     st.textContent = '最後更新：' + new Date().toLocaleString('zh-TW') + '｜通過門檻 ' + radarRows.length + ' 檔';
   }catch(e){
     st.textContent = '連線失敗（網路或瀏覽器限制）。手機請用 Safari／Chrome 開啟。';
@@ -384,6 +391,57 @@ function renderAltTemp(d){
     +'<div style="font-size:12.5px;margin-top:6px">Breadth30 <b>'+fmt(d.b30,1)+'%</b>｜ETH/BTC 30d <b class="'+(d.eb>=0?'g':'r')+'">'+(d.eb===null?'—':(d.eb>=0?'+':'')+fmt(d.eb,1)+'%')+'</b>｜樣本 '+d.n+' 檔</div>'
     +'<div style="font-size:12.5px;margin-top:4px">→ '+act+'</div>'
     +'<div class="dim" style="font-size:11px;margin-top:4px">Breadth90＝90 天跑贏 BTC 占比｜行動配段：&lt;50 主場・50–60 名目降檔・60–75 減半・≥75 空手｜每 12h 自動重量</div>';
+}
+/* v2.4 點火偵測：死寂（距120日高-35%＋7日量≤峰量15%）＋今日爆量抬價（量≥7日均×5＋漲≥12%）。
+   回測校準（500天/637事件）：30天翻倍 12.2%（base 5.5%）、+30% 42%、啞彈 28%、中位途中回撤 -28% */
+async function loadIgnite(prem, tmap){
+  const box = document.getElementById('igniteBody');
+  if (!box) return;
+  try{
+    let cands = [];
+    prem.forEach(function(p){
+      if (!p.symbol.endsWith('USDT') || p.symbol.indexOf('_')>=0 || p.symbol==='BTCUSDT' || p.symbol==='ETHUSDT') return;
+      const t = tmap[p.symbol]; if (!t) return;
+      const chg = Number(t.priceChangePercent);
+      const qv = Number(t.quoteVolume);
+      if (chg >= 12 && qv >= 3000000) cands.push(p.symbol);
+    });
+    cands = cands.slice(0, 12);
+    if (!cands.length){ box.innerHTML='<tr><td colspan="4" class="dim">今天沒有幣漲過 +12%——點火偵測待命中。</td></tr>'; return; }
+    const rows = [];
+    for (let i=0; i<cands.length; i++){
+      const S = cands[i];
+      try{
+        const k = await fetch(FAPI+'/fapi/v1/klines?symbol='+S+'&interval=1d&limit=130').then(function(r){ if(!r.ok) throw 0; return r.json(); });
+        if (!k || k.length < 40) continue;
+        const n = k.length;
+        let v7=0; for (let y=n-8; y<n-1; y++) v7 += Number(k[y][7]);
+        v7 = v7/7;
+        let peak=0, hi=0;
+        for (let y=Math.max(0,n-121); y<n-1; y++){ const q=Number(k[y][7]); if(q>peak)peak=q; const h=Number(k[y][2]); if(h>hi)hi=h; }
+        const cPrev = Number(k[n-2][4]);
+        const qToday = Number(k[n-1][7]);
+        const cToday = Number(k[n-1][4]);
+        if (peak<=0 || v7<=0 || cPrev<=0 || hi<=0) continue;
+        const quiet = (v7 <= 0.15*peak);
+        const low = ((cPrev/hi-1) <= -0.35);
+        const volX = qToday/v7;
+        const chg = (cToday/cPrev-1)*100;
+        if (quiet && low && volX >= 5 && chg >= 12){
+          rows.push({sym:S.replace(/USDT$/,''), chg:chg, volX:volX, off:(cPrev/hi-1)*100});
+        }
+      }catch(e){}
+      await new Promise(function(r){ setTimeout(r,80); });
+    }
+    if (!rows.length){ box.innerHTML='<tr><td colspan="4" class="dim">今天的上漲幣都不符合「死寂點火」（多半只是普通反彈）——警報待命。</td></tr>'; return; }
+    rows.sort(function(a,b){ return b.volX-a.volX; });
+    box.innerHTML = rows.map(function(x){
+      return '<tr class="click" data-sym="'+x.sym+'" data-side="long"><td>'+x.sym+'<span class="badge" style="background:rgba(240,185,11,.18);color:var(--amber)">🔥點火</span></td>'
+        +'<td class="g">+'+fmt(x.chg,1)+'%</td>'
+        +'<td class="amber">'+fmt(x.volX,1)+'x</td>'
+        +'<td class="dim">'+fmt(x.off,0)+'%</td></tr>';
+    }).join('');
+  }catch(e){ box.innerHTML='<tr><td colspan="4" class="dim">載入失敗——重按「重新掃描」。</td></tr>'; }
 }
 function rowHtml(x, badge, side){
   const frCls = x.fr < 0 ? 'g' : (x.fr > 0 ? 'r' : 'dim');
@@ -1437,6 +1495,7 @@ function planFromInput(){
   document.getElementById('longBody').addEventListener('click', radarClick);
   document.getElementById('shortBody').addEventListener('click', radarClick);
   document.getElementById('fuelBody').addEventListener('click', radarClick);
+  document.getElementById('igniteBody').addEventListener('click', radarClick);
   const pm = document.getElementById('planModal');
   pm.addEventListener('click', function(e){ if (e.target === pm) closePlan(); });
   document.getElementById('btnClose').addEventListener('click', closePlan);
