@@ -2,7 +2,7 @@ name: probe-binance-access
 
 # 探路用:確認 GitHub Actions 的機器打不打得到幣安 API。
 # 幣安會封鎖部分雲端/美國 IP,若這裡失敗,雲端排程掃描這條路就不可行,要換做法。
-# 測完即刪。
+# 設計成「拿不到 200 就 exit 1」,讓 run 的成敗直接等於答案(不必讀 log)。測完即刪。
 
 on:
   push:
@@ -14,34 +14,35 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Where is this runner
+      - name: Binance fapi ping must return 200
         run: |
-          echo "--- runner 對外 IP 與地區 ---"
-          curl -s --max-time 20 https://ipinfo.io/json || echo "ipinfo failed"
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 25 https://fapi.binance.com/fapi/v1/ping)
+          echo "ping HTTP $code"
+          test "$code" = "200" || { echo "BLOCKED: fapi ping returned $code"; exit 1; }
 
-      - name: Binance fapi ping
+      - name: Full-market premiumIndex must return 200 and be large
         run: |
-          echo "--- /fapi/v1/ping ---"
-          code=$(curl -s -o /tmp/ping.txt -w "%{http_code}" --max-time 25 https://fapi.binance.com/fapi/v1/ping)
-          echo "HTTP $code"
-          head -c 300 /tmp/ping.txt; echo
+          code=$(curl -s -o /tmp/p.json -w "%{http_code}" --max-time 30 https://fapi.binance.com/fapi/v1/premiumIndex)
+          size=$(wc -c < /tmp/p.json)
+          echo "premiumIndex HTTP $code bytes=$size"
+          test "$code" = "200" || { echo "BLOCKED: premiumIndex returned $code"; exit 1; }
+          test "$size" -gt 50000 || { echo "SUSPICIOUS: payload only $size bytes"; exit 1; }
 
-      - name: Binance real data
+      - name: Klines must return 200
         run: |
-          echo "--- /fapi/v1/ticker/24hr?symbol=BTCUSDT ---"
-          code=$(curl -s -o /tmp/t.json -w "%{http_code}" --max-time 25 "https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=BTCUSDT")
-          echo "HTTP $code"
-          head -c 400 /tmp/t.json; echo
-          echo "--- /fapi/v1/premiumIndex (全市場,實際會用到的那支) ---"
-          code2=$(curl -s -o /tmp/p.json -w "%{http_code}" --max-time 30 https://fapi.binance.com/fapi/v1/premiumIndex)
-          echo "HTTP $code2  bytes=$(wc -c < /tmp/p.json)"
+          code=$(curl -s -o /tmp/k.json -w "%{http_code}" --max-time 25 "https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=1d&limit=9")
+          echo "klines HTTP $code"
+          test "$code" = "200" || { echo "BLOCKED: klines returned $code"; exit 1; }
 
-      - name: ntfy reachable
+      - name: ntfy.sh must be reachable
         run: |
-          echo "--- ntfy.sh 可達性(不發送任何內容,只看 HTTP 狀態)---"
           code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 https://ntfy.sh/)
-          echo "HTTP $code"
+          echo "ntfy HTTP $code"
+          test "$code" = "200" -o "$code" = "301" -o "$code" = "302" || { echo "ntfy unreachable: $code"; exit 1; }
 
-      - name: pwsh available
+      - name: pwsh must exist
         shell: pwsh
-        run: $PSVersionTable.PSVersion.ToString()
+        run: |
+          $v = $PSVersionTable.PSVersion.ToString()
+          Write-Host "pwsh $v"
+          if ([version]$v -lt [version]'7.0') { throw "pwsh too old" }
