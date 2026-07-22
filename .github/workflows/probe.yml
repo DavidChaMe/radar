@@ -1,0 +1,47 @@
+name: probe-binance-access
+
+# 探路用:確認 GitHub Actions 的機器打不打得到幣安 API。
+# 幣安會封鎖部分雲端/美國 IP,若這裡失敗,雲端排程掃描這條路就不可行,要換做法。
+# 測完即刪。
+
+on:
+  push:
+    paths:
+      - '.github/workflows/probe.yml'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Where is this runner
+        run: |
+          echo "--- runner 對外 IP 與地區 ---"
+          curl -s --max-time 20 https://ipinfo.io/json || echo "ipinfo failed"
+
+      - name: Binance fapi ping
+        run: |
+          echo "--- /fapi/v1/ping ---"
+          code=$(curl -s -o /tmp/ping.txt -w "%{http_code}" --max-time 25 https://fapi.binance.com/fapi/v1/ping)
+          echo "HTTP $code"
+          head -c 300 /tmp/ping.txt; echo
+
+      - name: Binance real data
+        run: |
+          echo "--- /fapi/v1/ticker/24hr?symbol=BTCUSDT ---"
+          code=$(curl -s -o /tmp/t.json -w "%{http_code}" --max-time 25 "https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=BTCUSDT")
+          echo "HTTP $code"
+          head -c 400 /tmp/t.json; echo
+          echo "--- /fapi/v1/premiumIndex (全市場,實際會用到的那支) ---"
+          code2=$(curl -s -o /tmp/p.json -w "%{http_code}" --max-time 30 https://fapi.binance.com/fapi/v1/premiumIndex)
+          echo "HTTP $code2  bytes=$(wc -c < /tmp/p.json)"
+
+      - name: ntfy reachable
+        run: |
+          echo "--- ntfy.sh 可達性(不發送任何內容,只看 HTTP 狀態)---"
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 https://ntfy.sh/)
+          echo "HTTP $code"
+
+      - name: pwsh available
+        shell: pwsh
+        run: $PSVersionTable.PSVersion.ToString()
